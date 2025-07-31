@@ -1,5 +1,5 @@
 {application, erlang_red_parsers, [
-    {description, "An OTP library"},
+    {description, "A collection of parsers required and used by the Erlang-Red project."},
     {vsn, "0.1.1"},
     {registered, []},
     {applications, [
