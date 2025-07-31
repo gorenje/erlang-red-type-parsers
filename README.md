@@ -5,7 +5,7 @@ Besides the [JSONata](https://github.com/gorenje/erlang-red-jsonata) parser, the
 
 Hence this is a collection of parsers to better handle the specifics of Node-RED.
 
-1. Attribute parser
+## 1. Attribute parser
 
 Node-RED is based on NodeJS which has many access the keys inside an object, mixing array indices with hash keys:
 
@@ -14,7 +14,7 @@ Node-RED is based on NodeJS which has many access the keys inside an object, mix
 
 There are many possible combinations which aren't really handled with a single regular expression.
 
-2. Number Type parser
+## 2. Number Type parser
 
 Again, Javascript and hence Node-RED are very literal in interpreting numbers, a semi complete [test](https://flows.red-erik.org/f/fb50bac16667fc54) has just some examples.
 
@@ -25,7 +25,7 @@ Node-RED also extends this interpretation to include numbers defined as hexadeci
 
 So that all needs to be supported by some kind of parsing.
 
-3. Buffer Type parser
+## 3. Buffer Type parser
 
 This "secret" type of Node-RED - or rather rarely used in my line of business.
 
