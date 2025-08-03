@@ -7,6 +7,10 @@ foreach_parser_failure_test_() ->
       {
        missing_closing_bracket,
        "[0xfeedbabe,"
+      },
+      {
+       not_quite_empty_strings_quotes_data,
+       "[\"-\",'+']"
       }
     ],
 
@@ -53,6 +57,21 @@ foreach_parser_test_() ->
        negative_binary_hex_float_int_values,
        "[-0b1,-0b0,-0b11,-0b10,-0xff,-0x34]",
        [-1,0,-3,-2,-255,-52]
+      },
+      {
+       string_quotes_data,
+       "[\"-0b1\",'-0b0',\"-0b11\",-0b10,-0xff,\"-0x34\", \"-12.32\"]",
+       [-1,0,-3,-2,-255,-52,-12.32]
+      },
+      {
+       ignore_plus_symbolic,
+       "[\"+0b1\",'+0b0',\"+0b11\",+0b10,+0xff,\"+0x34\", \"+12.32\"]",
+       [1,0,3,2,255,52,12.32]
+      },
+      {
+       empty_strings_quotes_data,
+       "[\"\",'', '', '', \"\"]",
+       [0,0,0,0,0]
       }
     ],
 

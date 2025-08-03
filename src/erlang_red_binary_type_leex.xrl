@@ -19,6 +19,7 @@ WHITESPACE = [\s\t\n\r]
 HEX           = [0-9a-fA-F]+
 NUMS          = [0-9]+
 NEG           = [-]
+PLUS          = [+]
 FULLSTOP      = [\.]
 COMMA         = [,]
 HEXADECIMAL   = 0[xX]{HEX}
@@ -26,15 +27,24 @@ BINARY        = 0[bB][01]+
 EXPONENT      = [eE]
 BRACKET_OPEN  = [\[]
 BRACKET_CLOSE = [\]]
+DQUOTE        = \"
+SQUOTE        = \'
+DSTRING       = \"[^\"]+\"
+SSTRING       = \'[^\']+\'
 
 Rules.
 
 {WHITESPACE}+ : skip_token.
 
+% strip off the quotes and handle the contents
+{DSTRING} : {skip_token, remove_quotes(TokenChars)}.
+{SSTRING} : {skip_token, remove_quotes(TokenChars)}.
+
 {HEXADECIMAL} : {token, {hexadecimal, TokenLine, TokenChars}}.
 {BINARY}      : {token, {binary, TokenLine, TokenChars}}.
 {NUMS}        : {token, {integer, TokenLine, TokenChars}}.
 
+{PLUS}     : skip_token.
 {NEG}      : {token, {'-', TokenLine}}.
 {FULLSTOP} : {token, {'.', TokenLine}}.
 {EXPONENT} : {token, {'e', TokenLine}}.
@@ -43,6 +53,19 @@ Rules.
 {BRACKET_OPEN}  : {token, {'[', TokenLine}}.
 {BRACKET_CLOSE} : {token, {']', TokenLine}}.
 
+% Empty strings are zero
+{DQUOTE}{WHITESPACE}*{DQUOTE} : {skip_token, "0x0"}.
+{SQUOTE}{WHITESPACE}*{SQUOTE} : {skip_token, "0x0"}.
+
 Erlang code.
 
-%% Nothing here.
+remove_quotes([$"|Str]) ->
+    case lists:reverse(Str) of
+        [$"|StrD] ->
+            lists:reverse(StrD)
+    end;
+remove_quotes([$'|Str]) ->
+    case lists:reverse(Str) of
+        [$'|StrD] ->
+            lists:reverse(StrD)
+    end.
