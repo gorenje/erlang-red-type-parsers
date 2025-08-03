@@ -4,7 +4,7 @@ build-docker-container:
 	docker build -f Dockerfile.dev -t erlang-parsers-shell .
 
 start-docker-shell: build-docker-container
-	docker run -it -v $(shell pwd):/code -w /code --rm erlang-parsers-shell bash
+	docker run -it -v $(shell pwd):/code -w /code --hostname erlang-red-type-parsers --rm erlang-parsers-shell bash
 
 enter-docker-shell:
 	docker exec -it $(shell docker ps -f ancestor=erlang-parsers-shell -q) bash
