@@ -57,10 +57,6 @@ I find this restriction just that: a restriction. So this parser is more liberal
 
 This parser returns a list of Numbers, meaning floats are included and negative numbers also. The buffer type will reduce to this to a set of positive byte values. But that is done over at Erlang-Red, not here.
 
-Why?
-----
-
-Because Erlang makes it too easy to create leex/yacc parsers, so might as well use them!
 
 Build
 -----
