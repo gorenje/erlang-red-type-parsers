@@ -57,6 +57,31 @@ I find this restriction just that: a restriction. So this parser is more liberal
 
 This parser returns a list of Numbers, meaning floats are included and negative numbers also. The buffer type will reduce to this to a set of positive byte values. But that is done over at Erlang-Red, not here.
 
+## 4. Packet Type parser
+
+An implementation of the [Packet](https://bigeasy.github.io/packet) binary specification from NodeJS ecosystem. It will provide the basis for the [binary node](https://flows.nodered.org/node/node-red-contrib-binary) that is coming to Erlang-Red.
+
+The purpose emulate an Erlang representation, for example:
+
+    <<_:8/bits, 1:1, Len:7/bits, 1:1, Len2:7/bits, 1:1, Len3:7/bits, 0:1, Len4:7/bits, Rest/bytes>>
+
+which is understandable but could be made even more low-code by using a Packet representation:
+
+    x8,
+    x1 => 1,
+    b7 => len,
+    x1 => 1,
+    b7 => len2,
+    x1 => 1,
+    b7 => len3,
+    x1 => 0,
+    b7 => len4
+
+that would then result in a map containing each value:
+
+    #{ <<"len">> => ..., <<"len2">> => ..., <<"len3">> => ..., <<"len4">> => ..., }
+
+This is what the Packet Type parser does - it takes a Packet representation and transforms that to an Erlang representation and returns hash values containing the individual specified values.
 
 Build
 -----

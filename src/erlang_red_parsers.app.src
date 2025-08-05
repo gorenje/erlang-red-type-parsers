@@ -10,7 +10,8 @@
     {modules, [
         erl_attributeparser,
         erl_binarytypeparser,
-        erl_numparser
+        erl_numparser,
+        erl_packetparser
     ]},
     {licenses, ["Apache-2.0"]},
     {links, []}
