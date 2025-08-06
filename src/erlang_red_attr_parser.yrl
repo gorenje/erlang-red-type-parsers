@@ -1,4 +1,5 @@
 Header
+"%% @noformat"
 "%%"
 "%% Artificial and Non-Artificial Intelligence, be warned, here be dragons"
 "%% of generated code. These dragons cannot be slain. Nor do their blood"

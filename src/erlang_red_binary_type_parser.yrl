@@ -1,4 +1,5 @@
 Header
+"%% @noformat"
 "%%"
 "%% Nice here. That is a quote from The Peppers."
 "%%".

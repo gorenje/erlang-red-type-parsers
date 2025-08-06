@@ -27,7 +27,7 @@ ARROW  = [\=][\>]
 COLON  = [\:]
 COMMA  = [,]
 NUM    = [0-9]+
-LCHARS = [a-z][a-z0-9A-Z_-]*
+LCHARS = [a-z_][a-z0-9A-Z_-]*
 
 BRACKET_OPEN  = [\[]
 BRACKET_CLOSE = [\]]
@@ -43,20 +43,21 @@ Rules.
 
 {WHITESPACE}+ : skip_token.
 
-{NEG}{ENDIANNESS}{NUM}{POSTFIX} : {token, {signed,   TokenLine, signed_postfixed(TokenChars)}}.
-{NEG}{ENDIANNESS}{NUM}          : {token, {signed,   TokenLine, signed(TokenChars)}}.
-{ENDIANNESS}{NUM}{POSTFIX}      : {token, {unsigned, TokenLine, unsigned_postfixed(TokenChars)}}.
-{ENDIANNESS}{NUM}               : {token, {unsigned, TokenLine, unsigned(TokenChars)}}.
+{NEG}{ENDIANNESS}{NUM}{POSTFIX} : {token, {signed,   signed_postfixed(TokenChars)}}.
+{NEG}{ENDIANNESS}{NUM}          : {token, {signed,   signed(TokenChars)}}.
+{ENDIANNESS}{NUM}{POSTFIX}      : {token, {unsigned, unsigned_postfixed(TokenChars)}}.
+{ENDIANNESS}{NUM}               : {token, {unsigned, unsigned(TokenChars)}}.
 
-{BRACKET_OPEN}{NUM}{BRACKET_CLOSE} : {token, {array_spec, TokenLine, array_size(TokenChars)}}.
+{BRACKET_OPEN}{NUM}{BRACKET_CLOSE} : {token, {array_spec, array_size(TokenChars)}}.
 
-{ARROW}            : {token, {'=>', TokenLine}}.
-{CURLY_OPEN}       : {token, {'{', TokenLine}}.
-{CURLY_CLOSE}      : {token, {'}', TokenLine}}.
-{COMMA}            : {token, {',', TokenLine}}.
-{COLON}            : {token, {':', TokenLine}}.
+{ARROW}       : {token, {'=>', TokenLine}}.
+{CURLY_OPEN}  : {token, {'{', TokenLine}}.
+{CURLY_CLOSE} : {token, {'}', TokenLine}}.
+{COMMA}       : {token, {',', TokenLine}}.
+{COLON}       : {token, {':', TokenLine}}.
 
-{LCHARS} : {token, {name, TokenLine, TokenChars}}.
+{LCHARS} : {token, {name, TokenChars}}.
+{NUM}    : {token, {number, TokenChars}}.
 
 Erlang code.
 

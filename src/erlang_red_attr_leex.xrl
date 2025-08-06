@@ -1,3 +1,4 @@
+% @noformat
 %
 % Part of a parser to parse access to map attributes.
 % Node-RED has strings such as:

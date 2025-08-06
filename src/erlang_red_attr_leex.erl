@@ -12,7 +12,7 @@
 -export([format_error/1]).
 
 %% User code. This is placed here to allow extra attributes.
--file("/code/src/erlang_red_attr_leex.xrl", 38).
+-file("/code/src/erlang_red_attr_leex.xrl", 39).
 
 %% Nothing here.
 
@@ -536,52 +536,52 @@ yyaction(9, _, _, TokenLine, _) ->
 yyaction(_, _, _, _, _) -> error.
 
 -compile({inline,yyaction_0/0}).
--file("/code/src/erlang_red_attr_leex.xrl", 23).
+-file("/code/src/erlang_red_attr_leex.xrl", 24).
 yyaction_0() ->
      skip_token .
 
 -compile({inline,yyaction_1/2}).
--file("/code/src/erlang_red_attr_leex.xrl", 25).
+-file("/code/src/erlang_red_attr_leex.xrl", 26).
 yyaction_1(TokenChars, TokenLine) ->
      { token, { atom, TokenLine, TokenChars } } .
 
 -compile({inline,yyaction_2/2}).
--file("/code/src/erlang_red_attr_leex.xrl", 26).
+-file("/code/src/erlang_red_attr_leex.xrl", 27).
 yyaction_2(TokenChars, TokenLine) ->
      { token, { dqstring, TokenLine, TokenChars } } .
 
 -compile({inline,yyaction_3/2}).
--file("/code/src/erlang_red_attr_leex.xrl", 27).
+-file("/code/src/erlang_red_attr_leex.xrl", 28).
 yyaction_3(TokenChars, TokenLine) ->
      { token, { sqstring, TokenLine, TokenChars } } .
 
 -compile({inline,yyaction_4/2}).
--file("/code/src/erlang_red_attr_leex.xrl", 28).
+-file("/code/src/erlang_red_attr_leex.xrl", 29).
 yyaction_4(TokenChars, TokenLine) ->
      { token, { uchars, TokenLine, TokenChars } } .
 
 -compile({inline,yyaction_5/2}).
--file("/code/src/erlang_red_attr_leex.xrl", 29).
+-file("/code/src/erlang_red_attr_leex.xrl", 30).
 yyaction_5(TokenChars, TokenLine) ->
      { token, { lchars, TokenLine, TokenChars } } .
 
 -compile({inline,yyaction_6/2}).
--file("/code/src/erlang_red_attr_leex.xrl", 30).
+-file("/code/src/erlang_red_attr_leex.xrl", 31).
 yyaction_6(TokenChars, TokenLine) ->
      { token, { nums, TokenLine, TokenChars } } .
 
 -compile({inline,yyaction_7/1}).
--file("/code/src/erlang_red_attr_leex.xrl", 32).
+-file("/code/src/erlang_red_attr_leex.xrl", 33).
 yyaction_7(TokenLine) ->
      { token, { '.', TokenLine } } .
 
 -compile({inline,yyaction_8/1}).
--file("/code/src/erlang_red_attr_leex.xrl", 33).
+-file("/code/src/erlang_red_attr_leex.xrl", 34).
 yyaction_8(TokenLine) ->
      { token, { '[', TokenLine } } .
 
 -compile({inline,yyaction_9/1}).
--file("/code/src/erlang_red_attr_leex.xrl", 34).
+-file("/code/src/erlang_red_attr_leex.xrl", 35).
 yyaction_9(TokenLine) ->
      { token, { ']', TokenLine } } .
 -file("/usr/local/lib/erlang/lib/parsetools-2.6/include/leexinc.hrl", 344).

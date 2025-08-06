@@ -1,7 +1,8 @@
 -module(erl_packetparser).
 
 -export([
-    execute/2
+    execute/2,
+    packetdef_to_erlang/1
 ]).
 
 execute(PacketDefinition, BinaryData) ->
@@ -40,7 +41,7 @@ packetdef_to_erlang(PacketDefString) ->
             R
     end.
 
-handle_local_function(Func, Arg) -> ok.
+handle_local_function(_Func, _Arg) -> ok.
 
 evaluate_erlang(Expression) ->
     case erl_scan:string(Expression) of

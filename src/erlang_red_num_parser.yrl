@@ -1,4 +1,5 @@
 Header
+"%% @noformat"
 "%%"
 "%% 2 B A Number or ! 2 B A Number - that is the responsibility of this parser"
 "%% The num field in Node-RED is conveniently broad and handles many types"
