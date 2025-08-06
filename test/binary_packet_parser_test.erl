@@ -13,16 +13,34 @@ foreach_packet_parser_end_to_end_test_() ->
        { #{}, <<>> }
       },
       {
-       single_byte,
+       single_byte_big_endian,
        "b8 => f1",
-       <<123>>,
-       { #{ <<"f1">> => <<123>> }, <<>> }
+       <<223>>,
+       { #{ <<"f1">> => 223 }, <<>> }
+      },
+      {
+       single_byte_big_endian_signed,
+       "-b8 => f1",
+       <<223>>,
+       { #{ <<"f1">> => -33 }, <<>> }
+      },
+      {
+       single_byte_little_endian,
+       "l8 => f1",
+       <<223>>,
+       { #{ <<"f1">> => 223 }, <<>> }
+      },
+      {
+       single_byte_little_endian_and_signed,
+       "-l8 => f1",
+       <<223>>,
+       { #{ <<"f1">> => -33 }, <<>> }
       },
       {
        single_byte,
        "x1 => 1, b7 => len",
        <<130>>,
-       { #{ <<"len">> => <<2:7>> }, <<>> }
+       { #{ <<"len">> => 2 }, <<>> }
       },
       {
        single_byte_off_boundary,
@@ -30,14 +48,14 @@ foreach_packet_parser_end_to_end_test_() ->
         b8 => len,
         x7",
        <<130, 123>>,
-       { #{ <<"len">> => <<4>> }, <<>> }
+       { #{ <<"len">> => 4 }, <<>> }
       },
       {
        using_bit_boundary,
        "x1 => 1,
         b8 => len",
        <<130, 123>>,
-       { #{ <<"len">> => <<4>> }, <<123:7>> }
+       { #{ <<"len">> => 4 }, <<123:7>> }
       },
       {
        single_byte_off_boundary_with_structure,
@@ -45,31 +63,57 @@ foreach_packet_parser_end_to_end_test_() ->
         b8{ b4 => len1, b4 => len2 },
         x7",
        <<130, 123>>,
-       { #{ <<"len1">> => <<0:4>>, <<"len2">> => <<4:4>> }, <<>> }
+       { #{ <<"len1">> => 0, <<"len2">> => 4 }, <<>> }
       },
       {
        arrays_of_seven_bits,
        "b7[4] => values",
        <<130, 123, 164, 193>>,
-       { #{ <<"values">> => [<<65:7>>,<<30:7>>,<<116:7>>,<<76:7>>] }, <<1:4>> }
+       { #{ <<"values">> => [65,30,116,76] }, <<1:4>> }
       },
       {
        arrays_of_seven_bits_ignore_last_four_bits,
        "b7[4] => values, x4",
        <<130, 123, 164, 193>>,
-       { #{ <<"values">> => [<<65:7>>,<<30:7>>,<<116:7>>,<<76:7>>] }, <<>> }
+       { #{ <<"values">> => [65,30,116,76] }, <<>> }
       },
       {
        structures_can_have_arrays,
        "b32{ b7[4] => values, x4 }",
        <<130, 123, 164, 193>>,
-       { #{ <<"values">> => [<<65:7>>,<<30:7>>,<<116:7>>,<<76:7>>] }, <<>> }
+       { #{ <<"values">> => [65,30,116,76] }, <<>> }
       },
       {
        structures_can_have_arrays_reverse_naming,
        "b32{ values: b7[4], x4 }",
        <<130, 123, 164, 193>>,
-       { #{ <<"values">> => [<<65:7>>,<<30:7>>,<<116:7>>,<<76:7>>] }, <<>> }
+       { #{ <<"values">> => [65,30,116,76] }, <<>> }
+      },
+      {
+        little_endianness,
+        "x8,
+         b8 => value,
+         l8 => value2,
+         l16 => value3,
+         l32{l8 => f1, l16 => f2, l4 => f3, l4 => f4},
+         l8 => last",
+        <<255,234,212,213,124,221,123,231,231,231>>,
+       { #{ <<"f1">> => 221, <<"f2">> => 59259, <<"f3">> => 14,
+            <<"f4">> => 7, <<"last">> => 231, <<"value">> => 234,
+            <<"value2">> => 212, <<"value3">> => 31957 }, <<>> }
+      },
+      {
+        big_endianness,
+        "x8,
+         l8 => value,
+         b8 => value2,
+         b16 => value3,
+         b32{-l8 => f1, -l16 => f2, l4 => f3, l4 => f4},
+         b8 => last",
+        <<255,234,212,213,124,221,123,231,231,231>>,
+       { #{ <<"f1">> => -35, <<"f2">> => -6277, <<"f3">> => 14,
+            <<"f4">> => 7, <<"last">> => 231, <<"value">> => 234,
+            <<"value2">> => 212, <<"value3">> => 54652 }, <<>> }
       }
      ],
     TestList = [{
@@ -92,12 +136,13 @@ foreach_packet_parser_successful_test_() ->
         b8{ b4 => len1, b4 => len2 },
         x7",
        "fun (Binary) ->
-            <<1:1, VinternalField1:8/bits, _VinternalField2:7/bits,
-                    UnmatchedBytes/bits>> = Binary,
+             <<1:1, VinternalField1:8/bits, _VinternalField2:7/bits,
+                UnmatchedBytes/bits>> = Binary,
 
-            <<Vlen1:4/bits, Vlen2:4/bits>> = VinternalField1,
+             <<Vlen1:4/integer-big-unsigned,
+                      Vlen2:4/integer-big-unsigned>> = VinternalField1,
 
-            { #{ <<\"len2\">> => Vlen2, <<\"len1\">> => Vlen1 }, UnmatchedBytes }
+             { #{ <<\"len2\">> => Vlen2, <<\"len1\">> => Vlen1 }, UnmatchedBytes }
         end."
       },
       {
@@ -106,9 +151,10 @@ foreach_packet_parser_successful_test_() ->
         b8 => len,
         x7",
        "fun (Binary) ->
-              <<1:1, Vlen:8/bits, _VinternalField1:7/bits,
-                              UnmatchedBytes/bits>> = Binary,
-              { #{ <<\"len\">> => Vlen }, UnmatchedBytes }
+            <<1:1, Vlen:8/integer-big-unsigned, _VinternalField1:7/bits,
+                  UnmatchedBytes/bits>> = Binary,
+
+            { #{ <<\"len\">> => Vlen }, UnmatchedBytes }
         end."
       },
       {
@@ -116,8 +162,9 @@ foreach_packet_parser_successful_test_() ->
        "x1 => 1,
         b7 => len",
        "fun (Binary) ->
-              <<1:1, Vlen:7/bits, UnmatchedBytes/bits>> = Binary,
-              { #{ <<\"len\">> => Vlen }, UnmatchedBytes }
+            <<1:1, Vlen:7/integer-big-unsigned, UnmatchedBytes/bits>> = Binary,
+
+           { #{ <<\"len\">> => Vlen }, UnmatchedBytes }
         end."
       },
       {
@@ -127,8 +174,10 @@ foreach_packet_parser_successful_test_() ->
         36: x6,
         b7 => len",
        "fun (Binary) ->
-              <<1:1, 12:4, 36:6, Vlen:7/bits, UnmatchedBytes/bits>> = Binary,
-              { #{ <<\"len\">> => Vlen }, UnmatchedBytes }
+          <<1:1, 12:4, 36:6, Vlen:7/integer-big-unsigned,
+                UnmatchedBytes/bits>> = Binary,
+
+          { #{ <<\"len\">> => Vlen }, UnmatchedBytes }
         end."
       },
       {
@@ -144,16 +193,17 @@ foreach_packet_parser_successful_test_() ->
         b8    => crc,
         x8",
        "fun (Binary) ->
-             <<12:8, Vb82:8/bits, Vl123:24/bits, Vb89:32/bits, Vb8f:8/bits,
-               Vvolt:16/bits, Vtemp:16/bits, Vhum:8/bits, Vcrc:8/bits,
-                 _VinternalField1:8/bits, UnmatchedBytes/bits>> = Binary,
+           <<12:8, Vb82:8/integer-big-unsigned, Vl123:24/integer-little-unsigned,
+             Vb89:32/bits, Vb8f:8/integer-big-unsigned,
+             Vvolt:16/integer-big-unsigned, Vtemp:16/integer-big-unsigned,
+             Vhum:8/integer-big-unsigned, Vcrc:8/integer-big-unsigned,
+             _VinternalField1:8/bits, UnmatchedBytes/bits>> = Binary,
 
-
-             { #{ <<\"b82\">> => Vb82, <<\"l123\">> => Vl123,
-               <<\"b89\">> => [ X || <<X:8/bits>> <= Vb89], <<\"b8f\">> => Vb8f,
-               <<\"volt\">> => Vvolt, <<\"temp\">> => Vtemp, <<\"hum\">> => Vhum,
-               <<\"crc\">> => Vcrc },
-              UnmatchedBytes }
+           { #{ <<\"b82\">> => Vb82, <<\"l123\">> => Vl123,
+                <<\"b89\">> => [ X || <<X:8/integer-big-unsigned>> <= Vb89],
+                <<\"b8f\">> => Vb8f, <<\"volt\">> => Vvolt,
+                <<\"temp\">> => Vtemp, <<\"hum\">> => Vhum,
+                <<\"crc\">> => Vcrc }, UnmatchedBytes }
         end."
       },
       {
@@ -169,17 +219,19 @@ foreach_packet_parser_successful_test_() ->
         b8    => crc,
         x8",
        "fun (Binary) ->
-             <<_VinternalField1:8/bits, Vlen:8/bits, Vid:24/bits,
-                Vtag:32/bits, Vstatus:8/bits, Vvolt:16/bits, Vtemp:16/bits,
-                Vhum:8/bits, Vcrc:8/bits, _VinternalField2:8/bits,
-                UnmatchedBytes/bits>> = Binary,
+           <<_VinternalField1:8/bits, Vlen:8/integer-big-unsigned,
+             Vid:24/integer-little-unsigned, Vtag:32/bits,
+             Vstatus:8/integer-big-unsigned, Vvolt:16/integer-big-unsigned,
+             Vtemp:16/integer-big-unsigned, Vhum:8/integer-big-unsigned,
+             Vcrc:8/integer-big-unsigned, _VinternalField2:8/bits,
+             UnmatchedBytes/bits>> = Binary,
 
-             { #{ <<\"len\">> => Vlen, <<\"id\">> => Vid,
-                   <<\"tag\">> => [ X || <<X:8/bits>> <= Vtag],
-                    <<\"status\">> => Vstatus, <<\"volt\">> => Vvolt,
-                     <<\"temp\">> => Vtemp, <<\"hum\">> => Vhum,
-                      <<\"crc\">> => Vcrc },
-               UnmatchedBytes }
+           { #{ <<\"len\">> => Vlen, <<\"id\">> => Vid,
+                <<\"tag\">> => [ X || <<X:8/integer-big-unsigned>> <= Vtag],
+                <<\"status\">> => Vstatus, <<\"volt\">> => Vvolt,
+                <<\"temp\">> => Vtemp, <<\"hum\">> => Vhum,
+                <<\"crc\">> => Vcrc },
+             UnmatchedBytes }
         end."
       },
       {
@@ -190,14 +242,15 @@ foreach_packet_parser_successful_test_() ->
         b8[4],
         b17{b3,x6,-b8}",
        "fun (Binary) ->
-           <<_VinternalField1:8/bits, VinternalField2:8/bits,
-             VinternalField3:124/bits, VinternalField4:32/bits,
-             VinternalField5:17/bits, UnmatchedBytes/bits>> = Binary,
+            <<_VinternalField1:8/bits, VinternalField2:8/integer-big-unsigned,
+              VinternalField3:124/integer-little-unsigned,
+              VinternalField4:32/bits, VinternalField5:17/bits,
+              UnmatchedBytes/bits>> = Binary,
 
-           <<VinternalField5:3/bits, _VinternalField6:6/bits,
-                 VinternalField7:8/bits>> = VinternalField5,
+            <<VinternalField5:3/integer-big-unsigned, _VinternalField6:6/bits,
+                VinternalField7:8/integer-big-signed>> = VinternalField5,
 
-          { #{ }, UnmatchedBytes }
+            { #{ }, UnmatchedBytes }
         end."
        },
       {
@@ -208,15 +261,16 @@ foreach_packet_parser_successful_test_() ->
         b8[4],
         b17{b3 => value, x6, -b8 => count}",
        "fun (Binary) ->
+            <<_VinternalField1:8/bits, VinternalField2:8/integer-big-unsigned,
+              VinternalField3:124/integer-little-unsigned,
+              VinternalField4:32/bits, VinternalField5:17/bits,
+              UnmatchedBytes/bits>> = Binary,
 
-          <<_VinternalField1:8/bits, VinternalField2:8/bits,
-             VinternalField3:124/bits, VinternalField4:32/bits,
-             VinternalField5:17/bits, UnmatchedBytes/bits>> = Binary,
+            <<Vvalue:3/integer-big-unsigned, _VinternalField5:6/bits,
+              Vcount:8/integer-big-signed>> = VinternalField5,
 
-          <<Vvalue:3/bits, _VinternalField5:6/bits, Vcount:8/bits>> =
-                 VinternalField5,
-
-         { #{ <<\"count\">> => Vcount, <<\"value\">> => Vvalue }, UnmatchedBytes }
+            { #{ <<\"count\">> => Vcount, <<\"value\">> => Vvalue },
+               UnmatchedBytes }
         end."
        },
       {
@@ -227,25 +281,26 @@ foreach_packet_parser_successful_test_() ->
         b8[4] => value3,
         b17{b3 => value, x6, -b8 => count}",
        "fun (Binary) ->
-            <<_VinternalField1:8/bits, Vvalue:8/bits, Vvalue2:124/bits,
-               Vvalue3:32/bits, VinternalField2:17/bits,
-                 UnmatchedBytes/bits>> = Binary,
+            <<_VinternalField1:8/bits, Vvalue:8/integer-big-unsigned,
+              Vvalue2:124/integer-little-unsigned, Vvalue3:32/bits,
+              VinternalField2:17/bits, UnmatchedBytes/bits>> = Binary,
 
-            <<Vvalue:3/bits, _VinternalField2:6/bits, Vcount:8/bits>> =
-                                               VinternalField2,
+            <<Vvalue:3/integer-big-unsigned, _VinternalField2:6/bits,
+              Vcount:8/integer-big-signed>> = VinternalField2,
 
-             { #{ <<\"count\">> => Vcount, <<\"value\">> => Vvalue,
-                  <<\"value3\">> => [ X || <<X:8/bits>> <= Vvalue3],
-                  <<\"value2\">> => Vvalue2, <<\"value\">> => Vvalue
-               }, UnmatchedBytes }
+            { #{ <<\"count\">> => Vcount, <<\"value\">> => Vvalue,
+                 <<\"value3\">> => [ X || <<X:8/integer-big-unsigned>> <= Vvalue3],
+              <<\"value2\">> => Vvalue2, <<\"value\">> => Vvalue },
+             UnmatchedBytes }
         end."
        },
       {
        single_byte_unlabeled_byte,
        "b8",
        "fun (Binary) ->
-             <<VinternalField1:8/bits, UnmatchedBytes/bits>> = Binary,
-             { #{ }, UnmatchedBytes }
+            <<VinternalField1:8/integer-big-unsigned,
+                UnmatchedBytes/bits>> = Binary,
+            { #{ }, UnmatchedBytes }
         end."
        },
       {
@@ -255,19 +310,25 @@ foreach_packet_parser_successful_test_() ->
           b8 => value,
           b8{ b1 => v3_1, x4, b3 => v3_2 }",
          "fun (Binary) ->
-             <<VinternalField1:8/bits, VinternalField2:16/bits, Vvalue:8/bits,
-               VinternalField3:8/bits, UnmatchedBytes/bits>> = Binary,
+              <<VinternalField1:8/bits, VinternalField2:16/bits,
+                Vvalue:8/integer-big-unsigned, VinternalField3:8/bits,
+                UnmatchedBytes/bits>> = Binary,
 
-             <<Vv1_1:1/bits, Vv1_2:2/bits, Vv1_3:5/bits>> = VinternalField1,
-             <<Vv2_1:4/bits, Vv2_2:8/bits, Vv3_3:4/bits>> = VinternalField2,
-             <<Vv3_1:1/bits, _VinternalField3:4/bits, Vv3_2:3/bits>> =
-                    VinternalField3,
+              <<Vv1_1:1/integer-big-unsigned, Vv1_2:2/integer-big-unsigned,
+                Vv1_3:5/integer-big-unsigned>> = VinternalField1,
+
+              <<Vv2_1:4/integer-big-unsigned, Vv2_2:8/integer-big-unsigned,
+                Vv3_3:4/integer-big-unsigned>> = VinternalField2,
+
+              <<Vv3_1:1/integer-big-unsigned, _VinternalField3:4/bits,
+                Vv3_2:3/integer-big-unsigned>> = VinternalField3,
 
              { #{ <<\"v3_2\">> => Vv3_2, <<\"v3_1\">> => Vv3_1,
-                  <<\"value\">> => Vvalue,
-                  <<\"v1_3\">> => Vv1_3, <<\"v1_2\">> => Vv1_2,
-                  <<\"v1_1\">> => Vv1_1, <<\"v2_1\">> => Vv2_1,
-                  <<\"v2_2\">> => Vv2_2, <<\"v3_3\">> => Vv3_3 }, UnmatchedBytes }
+                 <<\"value\">> => Vvalue, <<\"v1_3\">> => Vv1_3,
+                 <<\"v1_2\">> => Vv1_2, <<\"v1_1\">> => Vv1_1,
+                 <<\"v2_1\">> => Vv2_1, <<\"v2_2\">> => Vv2_2,
+                 <<\"v3_3\">> => Vv3_3 },
+              UnmatchedBytes }
           end."
        }
     ],

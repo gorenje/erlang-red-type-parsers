@@ -2,14 +2,15 @@
 
 -export([
     execute/2,
-    packetdef_to_erlang/1
+    packetdef_to_erlang/1,
+    evaluate_erlang/1
 ]).
 
 execute(PacketDefinition, BinaryData) ->
     try
         case packetdef_to_erlang(PacketDefinition) of
             {ok, ErlangCode} ->
-                case evaluate_erlang(binary_to_list(ErlangCode)) of
+                case evaluate_erlang(ErlangCode) of
                     {ok, Func} ->
                         {ok, Func(BinaryData)};
                     Error ->
@@ -43,8 +44,10 @@ packetdef_to_erlang(PacketDefString) ->
 
 handle_local_function(_Func, _Arg) -> ok.
 
-evaluate_erlang(Expression) ->
-    case erl_scan:string(Expression) of
+evaluate_erlang(ErlangCode) when is_binary(ErlangCode) ->
+    evaluate_erlang(binary_to_list(ErlangCode));
+evaluate_erlang(ErlangCode) ->
+    case erl_scan:string(ErlangCode) of
         {ok, Tokens, _} ->
             case erl_parse:parse_exprs(Tokens) of
                 {ok, Parsed} ->
