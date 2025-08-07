@@ -5,7 +5,7 @@
 -module(erlang_red_packet_type_parser).
 -file("/code/src/erlang_red_packet_type_parser.erl", 6).
 -export([parse/1, parse_and_scan/1, format_error/1]).
--file("/code/src/erlang_red_packet_type_parser.yrl", 81).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 82).
 
 %%
 %% Take the list of arguments and convert to a function containing binary
@@ -167,7 +167,8 @@ create_binary_matcher(
         false ->
             create_binary_matcher(
               Rest,
-              [io_lib:format("~s:~b", [NameStr, Size * Cnt]) | Acc]
+              [io_lib:format("~b:~b", [list_to_integer(NameStr),
+                                       Size * Cnt]) | Acc]
              );
         true ->
             create_binary_matcher(
@@ -496,7 +497,7 @@ yecctoken2string1(Other) ->
 
 
 
--file("/code/src/erlang_red_packet_type_parser.erl", 499).
+-file("/code/src/erlang_red_packet_type_parser.erl", 500).
 
 -dialyzer({nowarn_function, yeccpars2/7}).
 -compile({nowarn_unused_function,  yeccpars2/7}).
@@ -569,7 +570,7 @@ yeccpars2(32=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 %% yeccpars2(33=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 %%  yeccpars2_33(S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccpars2(34=S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_0(S, Cat, Ss, Stack, T, Ts, Tzr);
+ yeccpars2_34(S, Cat, Ss, Stack, T, Ts, Tzr);
 %% yeccpars2(35=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 %%  yeccpars2_35(S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccpars2(36=S, Cat, Ss, Stack, T, Ts, Tzr) ->
@@ -829,7 +830,22 @@ yeccpars2_33(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  NewStack = yeccpars2_33_(Stack),
  yeccgoto_statement(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
 
-%% yeccpars2_34: see yeccpars2_0
+-dialyzer({nowarn_function, yeccpars2_34/7}).
+-compile({nowarn_unused_function,  yeccpars2_34/7}).
+yeccpars2_34(S, 'hex', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 7, Ss, Stack, T, Ts, Tzr);
+yeccpars2_34(S, 'name', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 8, Ss, Stack, T, Ts, Tzr);
+yeccpars2_34(S, 'number', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 9, Ss, Stack, T, Ts, Tzr);
+yeccpars2_34(S, 'signed', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 10, Ss, Stack, T, Ts, Tzr);
+yeccpars2_34(S, 'unsigned', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 11, Ss, Stack, T, Ts, Tzr);
+yeccpars2_34(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
+ [_|Nss] = Ss,
+ NewStack = yeccpars2_34_(Stack),
+ yeccgoto_statements(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
 
 -dialyzer({nowarn_function, yeccpars2_35/7}).
 -compile({nowarn_unused_function,  yeccpars2_35/7}).
@@ -1206,10 +1222,20 @@ yeccpars2_33_(__Stack0) ->
                               [___1, ___3]
   end | __Stack].
 
+-compile({inline,yeccpars2_34_/1}).
+-dialyzer({nowarn_function, yeccpars2_34_/1}).
+-compile({nowarn_unused_function,  yeccpars2_34_/1}).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 75).
+yeccpars2_34_(__Stack0) ->
+ [___2,___1 | __Stack] = __Stack0,
+ [begin
+                              [lists:flatten(___1)]
+  end | __Stack].
+
 -compile({inline,yeccpars2_35_/1}).
 -dialyzer({nowarn_function, yeccpars2_35_/1}).
 -compile({nowarn_unused_function,  yeccpars2_35_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 75).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 76).
 yeccpars2_35_(__Stack0) ->
  [___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1227,4 +1253,4 @@ yeccpars2_37_(__Stack0) ->
   end | __Stack].
 
 
--file("/code/src/erlang_red_packet_type_parser.yrl", 383).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 385).

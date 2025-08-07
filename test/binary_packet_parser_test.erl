@@ -198,6 +198,16 @@ foreach_packet_parser_successful_test_() ->
         end."
       },
       {
+        trailing_commas_are_ok,
+        "x1,",
+        "fun (Binary) -> <<_VinternalField1:1/bits, UnmatchedBytes/bits>> = Binary, { #{ }, UnmatchedBytes } end."
+      },
+      {
+        trailing_commas_are_ok_with_label,
+        "x1 => 0x23,",
+        "fun (Binary) -> <<35:1, UnmatchedBytes/bits>> = Binary, { #{ }, UnmatchedBytes } end."
+      },
+      {
        word_on_word_boundary_with_structure,
        "x1 => 1,
         b8{ b4 => len1, b4 => len2 },

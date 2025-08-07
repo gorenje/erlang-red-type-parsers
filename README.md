@@ -107,11 +107,12 @@ check_parsing_of_png_image_test() ->
        x8 => 0x0A
     ",
 
-    ChunkDef =
-       "b32         => length,
-        b8[4]       => type,
-        b8[$length] => data,
-        b32         => crc",
+    ChunkDef = "
+       b32         => length,
+       b8[4]       => type,
+       b8[$length] => data,
+       b32         => crc
+    ",
 
     {ok, HeaderFunc} = erl_packetparser:erlang_func_for_packetdef(HeaderDef),
     {ok, ChunkFunc} = erl_packetparser:erlang_func_for_packetdef(ChunkDef),
@@ -129,8 +130,20 @@ check_parsing_of_png_image_test() ->
     ?assertEqual(["IHDR","iCCP","eXIf","iTXt","IDAT","IEND"], Types).
 ```
 
-This takes advantage of the variable reference which is an extension of the Packet definition language. The reference makes this kind of data handler super simple since the packets defined their lengths. Alternative would be a multi step: read first part of packet, create a new packet defintion, read data chunk, rinse and repeat.
+This takes advantage of the variable reference which is an extension to the Packet definition language. The reference makes this kind of data handling super simple since the packets defined their lengths.
 
+Alternative would be a multi step: read first part of packet, create a new packet defintion, read data chunk, rinse and repeat.
+
+By using a reference to a length already defined, the packet can be parsed in one go:
+
+```
+b32         => length,
+b8[4]       => type,
+b8[$length] => data,
+b32         => crc
+```
+
+Use a `$` prefix for the referenced variable name to make this work.
 
 Build
 -----

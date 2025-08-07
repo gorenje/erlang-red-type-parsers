@@ -76,6 +76,7 @@ statement -> head '=>' tail : ['$1', '$3'].
 statement -> tail ':' head  : ['$3', '$1'].
 
 statements -> statement : [lists:flatten('$1')].
+statements -> statement ',' : [lists:flatten('$1')].
 statements -> statement ',' statements : [lists:flatten('$1') | '$3'].
 
 Erlang code.
@@ -240,7 +241,8 @@ create_binary_matcher(
         false ->
             create_binary_matcher(
               Rest,
-              [io_lib:format("~s:~b", [NameStr, Size * Cnt]) | Acc]
+              [io_lib:format("~b:~b", [list_to_integer(NameStr),
+                                       Size * Cnt]) | Acc]
              );
         true ->
             create_binary_matcher(
