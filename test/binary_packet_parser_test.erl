@@ -4,6 +4,45 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+collect_png_chunks(<<>>, Acc, _ChunkFunc) ->
+    lists:reverse(Acc);
+collect_png_chunks(Data, Acc, ChunkFunc) ->
+    {Chunk, Rest} = ChunkFunc(Data),
+    collect_png_chunks(Rest, [Chunk | Acc], ChunkFunc).
+
+check_parsing_of_png_image_test() ->
+    HeaderDef = "
+       x8 => 0x89,
+       x8 => 0x50,
+       x8 => 0x4E,
+       x8 => 0x47,
+       x8 => 0x0D,
+       x8 => 0x0A,
+       x8 => 0x1A,
+       x8 => 0x0A
+    ",
+
+    ChunkDef =
+       "b32         => length,
+        b8[4]       => type,
+        b8[$length] => data,
+        b32         => crc",
+
+    {ok, HeaderFunc} = erl_packetparser:erlang_func_for_packetdef(HeaderDef),
+    {ok, ChunkFunc} = erl_packetparser:erlang_func_for_packetdef(ChunkDef),
+
+    {ok, PngData} =
+        file:read_file(code:priv_dir(erlang_red_parsers) ++ "/test.png"),
+
+    % skim off the header.
+    {#{}, RestData} = HeaderFunc(PngData),
+
+    % retrieve all chunks defined in the png
+    Chunks = collect_png_chunks(RestData, [], ChunkFunc),
+    Types = [T || #{ <<"type">> := T } <- Chunks ],
+
+    ?assertEqual(["IHDR","iCCP","eXIf","iTXt","IDAT","IEND"], Types).
+
 foreach_packet_parser_end_to_end_test_() ->
     Tests = [
       {
@@ -130,6 +169,34 @@ foreach_packet_parser_end_to_end_test_() ->
 
 foreach_packet_parser_successful_test_() ->
     Tests = [
+      {
+       parsing_png_datastream_header,
+       "x8 => 0x89,
+        x8 => 0x50,
+        x8 => 0x4E,
+        x8 => 0x47,
+        x8 => 0x0D,
+        x8 => 0x0A,
+        x8 => 0x1A,
+        x8 => 0x0A,
+        b32         => length,
+        b8[4]       => type,
+        b8[$length] => data,
+        b32         => crc
+       ",
+       "fun (Binary) ->
+           <<137:8, 80:8, 78:8, 71:8, 13:8, 10:8, 26:8, 10:8,
+              Vlength:32/integer-big-unsigned, Vtype:32/bits,
+              Vdata:(8*Vlength)/bits, Vcrc:32/integer-big-unsigned,
+                     UnmatchedBytes/bits>> = Binary,
+
+           { #{ <<\"length\">> => Vlength,
+               <<\"type\">> => [ X || <<X:8/integer-big-unsigned>> <= Vtype],
+                <<\"data\">> => Vdata, <<\"crc\">> => Vcrc },
+             UnmatchedBytes
+           }
+        end."
+      },
       {
        word_on_word_boundary_with_structure,
        "x1 => 1,

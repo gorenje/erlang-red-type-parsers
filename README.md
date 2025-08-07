@@ -83,6 +83,55 @@ that would then result in a map containing each value:
 
 This is what the Packet Type parser does - it takes a Packet representation and transforms that to an Erlang representation and returns hash values containing the individual specified values.
 
+Packet type parser example
+----
+
+Reading the chunks from an PNG image:
+
+```erlang
+collect_png_chunks(<<>>, Acc, _ChunkFunc) ->
+    lists:reverse(Acc);
+collect_png_chunks(Data, Acc, ChunkFunc) ->
+    {Chunk, Rest} = ChunkFunc(Data),
+    collect_png_chunks(Rest, [Chunk | Acc], ChunkFunc).
+
+check_parsing_of_png_image_test() ->
+    HeaderDef = "
+       x8 => 0x89,
+       x8 => 0x50,
+       x8 => 0x4E,
+       x8 => 0x47,
+       x8 => 0x0D,
+       x8 => 0x0A,
+       x8 => 0x1A,
+       x8 => 0x0A
+    ",
+
+    ChunkDef =
+       "b32         => length,
+        b8[4]       => type,
+        b8[$length] => data,
+        b32         => crc",
+
+    {ok, HeaderFunc} = erl_packetparser:erlang_func_for_packetdef(HeaderDef),
+    {ok, ChunkFunc} = erl_packetparser:erlang_func_for_packetdef(ChunkDef),
+
+    {ok, PngData} =
+        file:read_file(code:priv_dir(erlang_red_parsers) ++ "/test.png"),
+
+    % skim off the header.
+    {#{}, RestData} = HeaderFunc(PngData),
+
+    % retrieve all chunks defined in the png
+    Chunks = collect_png_chunks(RestData, [], ChunkFunc),
+    Types = [T || #{ <<"type">> := T } <- Chunks ],
+
+    ?assertEqual(["IHDR","iCCP","eXIf","iTXt","IDAT","IEND"], Types).
+```
+
+This takes advantage of the variable reference which is an extension of the Packet definition language. The reference makes this kind of data handler super simple since the packets defined their lengths. Alternative would be a multi step: read first part of packet, create a new packet defintion, read data chunk, rinse and repeat.
+
+
 Build
 -----
 

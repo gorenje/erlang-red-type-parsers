@@ -3,7 +3,8 @@
 -export([
     execute/2,
     packetdef_to_erlang/1,
-    evaluate_erlang/1
+    evaluate_erlang/1,
+    erlang_func_for_packetdef/1
 ]).
 
 execute(PacketDefinition, BinaryData) ->
@@ -66,4 +67,12 @@ evaluate_erlang(ErlangCode) ->
             end;
         Error ->
             {error, Error}
+    end.
+
+erlang_func_for_packetdef(PacketDefinition) ->
+    case packetdef_to_erlang(PacketDefinition) of
+        {ok, ErlangCode} ->
+            evaluate_erlang(ErlangCode);
+        R ->
+            {error, R}
     end.

@@ -23,11 +23,13 @@ Definitions.
 
 WHITESPACE = [\s\t\n\r]
 
-ARROW  = [\=][\>]
-COLON  = [\:]
-COMMA  = [,]
-NUM    = [0-9]+
-LCHARS = [a-z_][a-z0-9A-Z_-]*
+ARROW    = [\=][\>]
+COLON    = [\:]
+COMMA    = [,]
+NUM      = [0-9]+
+LCHARS   = [a-z_][a-z0-9A-Z_-]*
+HEXCHARS = 0x[a-f0-9A-F]+
+DOLLAR   = [$]
 
 BRACKET_OPEN  = [\[]
 BRACKET_CLOSE = [\]]
@@ -48,7 +50,8 @@ Rules.
 {ENDIANNESS}{NUM}{POSTFIX}      : {token, {unsigned, unsigned_postfixed(TokenChars)}}.
 {ENDIANNESS}{NUM}               : {token, {unsigned, unsigned(TokenChars)}}.
 
-{BRACKET_OPEN}{NUM}{BRACKET_CLOSE} : {token, {array_spec, array_size(TokenChars)}}.
+{BRACKET_OPEN}{NUM}{BRACKET_CLOSE}            : {token, {array_spec, {size, array_size(TokenChars)}}}.
+{BRACKET_OPEN}{DOLLAR}{LCHARS}{BRACKET_CLOSE} : {token, {array_spec, {var_ref, var_ref(TokenChars)}}}.
 
 {ARROW}       : {token, {'=>', TokenLine}}.
 {CURLY_OPEN}  : {token, {'{', TokenLine}}.
@@ -56,8 +59,9 @@ Rules.
 {COMMA}       : {token, {',', TokenLine}}.
 {COLON}       : {token, {':', TokenLine}}.
 
-{LCHARS} : {token, {name, TokenChars}}.
-{NUM}    : {token, {number, TokenChars}}.
+{LCHARS}   : {token, {name, TokenChars}}.
+{NUM}      : {token, {number, TokenChars}}.
+{HEXCHARS} : {token, {hex, TokenChars}}.
 
 Erlang code.
 
@@ -79,3 +83,8 @@ unsigned(Str) ->
 array_size([$[|Str]) ->
     [$]|S2] = lists:reverse(Str),
     list_to_integer(lists:reverse(S2)).
+
+var_ref([$[|Str]) ->
+    [$]|S2] = lists:reverse(Str),
+    [$$|S3] = lists:reverse(S2),
+    S3.
