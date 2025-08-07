@@ -32,11 +32,11 @@ hexstring_to_number(V, 0) ->
 
 %%
 convert_binary({_, _, [$0 | V]}) ->
-    convert_hex_remove_b(V).
+    convert_binary_remove_b(V).
 
-convert_hex_remove_b([$B | V]) ->
+convert_binary_remove_b([$B | V]) ->
     binary_list_to_integer(lists:reverse(V), 0, 1);
-convert_hex_remove_b([$b | V]) ->
+convert_binary_remove_b([$b | V]) ->
     binary_list_to_integer(lists:reverse(V), 0, 1).
 
 binary_list_to_integer([], Total, _) ->
