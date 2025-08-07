@@ -1,6 +1,6 @@
 {application, erlang_red_parsers, [
     {description, "A collection of parsers needed by the Erlang-Red project."},
-    {vsn, "0.1.4"},
+    {vsn, "0.1.5"},
     {registered, []},
     {applications, [
         kernel,
