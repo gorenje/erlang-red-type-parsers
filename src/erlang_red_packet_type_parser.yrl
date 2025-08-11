@@ -110,7 +110,7 @@ convert(Args) ->
 
     %% construct the main Binary matcher which also takes a UnmatchedBytes
     %% field name.
-    Args4 = create_binary_matcher(Args3, []) ++ ["UnmatchedBytes/bits"],
+    Args4 = create_binary_matcher(Args3, []) ++ ["UnmatchedBits/bits"],
     MainBinaryMatcher = lists:join(", ", Args4),
 
     %% For each strcture defined, we add an extra binary matcher.
@@ -136,14 +136,22 @@ function_stanza(BinaryMatcher, [], HashMapDef) ->
     list_to_binary(io_lib:format(
        "fun (Binary) ->
              <<~s>> = Binary,
-             { #{ ~s }, UnmatchedBytes }
+
+             <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                                    UnmatchedBits/bits>> = Binary,
+
+             {ok, #{ ~s }, MatchedBits, UnmatchedBits}
         end.", [BinaryMatcher, HashMapDef]));
 function_stanza(BinaryMatcher, StructMatcher, HashMapDef) ->
     list_to_binary(io_lib:format(
        "fun (Binary) ->
              <<~s>> = Binary,
              ~s,
-             { #{ ~s }, UnmatchedBytes }
+
+             <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                                    UnmatchedBits/bits>> = Binary,
+
+             {ok,  #{ ~s }, MatchedBits, UnmatchedBits}
         end.", [BinaryMatcher, lists:join(",\n", StructMatcher), HashMapDef])).
 
 %%

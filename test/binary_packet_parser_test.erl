@@ -11,7 +11,7 @@
 collect_png_chunks(<<>>, Acc, _ChunkFunc) ->
     lists:reverse(Acc);
 collect_png_chunks(Data, Acc, ChunkFunc) ->
-    {Chunk, Rest} = ChunkFunc(Data),
+    {ok, Chunk, _Matched, Rest} = ChunkFunc(Data),
     collect_png_chunks(Rest, [Chunk | Acc], ChunkFunc).
 
 check_parsing_of_png_image_test() ->
@@ -39,7 +39,7 @@ check_parsing_of_png_image_test() ->
         file:read_file(code:priv_dir(erlang_red_parsers) ++ "/test.png"),
 
     % skim off the header.
-    {#{}, RestData} = HeaderFunc(PngData),
+    {ok, #{}, _MatchedData, RestData} = HeaderFunc(PngData),
 
     % retrieve all chunks defined in the png
     Chunks = collect_png_chunks(RestData, [], ChunkFunc),
@@ -72,26 +72,42 @@ split_on_zero(B, N) when is_binary(B), is_integer(N) ->
         _ -> B
     end.
 
-sos_components({Comp,Rest}, _Func, 1 = Cnt) ->
+sos_components({ok, Comp, _Matched, Rest}, _Func, 1 = Cnt) ->
     io:format("  ~b. Compponent: ~p~n", [Cnt,Comp]),
     Rest;
-sos_components({Comp,Rest}, Func, Cnt) when Cnt > 1 ->
+sos_components({ok, Comp, _Matched, Rest}, Func, Cnt) when Cnt > 1 ->
     io:format("  ~b. Compponent: ~p~n", [Cnt,Comp]),
     sos_components(Func(Rest),Func,Cnt-1).
 
-jpg_check_segment_type({#{<<"type">> := Type}, <<>>}, _TypeFunc, _DataFunc) ->
+jpg_check_segment_type(
+  {ok, #{<<"type">> := Type}, _Matched, <<>>},
+  _TypeFunc,
+  _DataFunc
+) ->
     io:format("Found Type: ~p - Data Ran Out~n", [Type]);
 
-jpg_check_segment_type({#{<<"type">> := ?SOI}, Rest}, TypeFunc, DataFunc) ->
+jpg_check_segment_type(
+  {ok, #{<<"type">> := ?SOI}, _Matched, Rest},
+  TypeFunc,
+  DataFunc
+) ->
     io:format("Found Type: 0x~s No Data~n", [integer_to_list(?SOI,16)]),
     jpg_check_segment_type(TypeFunc(Rest), TypeFunc, DataFunc);
 
-jpg_check_segment_type({#{<<"type">> := ?EOI}, Rest}, TypeFunc, DataFunc) ->
+jpg_check_segment_type(
+  {ok, #{<<"type">> := ?EOI}, _Matched, Rest},
+  TypeFunc,
+  DataFunc
+) ->
     io:format("Found Type: 0x~s No Data~n", [integer_to_list(?EOI,16)]),
     jpg_check_segment_type(TypeFunc(Rest), TypeFunc, DataFunc);
 
-jpg_check_segment_type({#{<<"type">> := ?SOF0}, Rest}, TypeFunc, DataFunc) ->
-    { #{<<"data">> := Data}, Rest2} = DataFunc(Rest),
+jpg_check_segment_type(
+  {ok, #{<<"type">> := ?SOF0}, _Matched, Rest},
+  TypeFunc,
+  DataFunc
+) ->
+    { ok, #{<<"data">> := Data}, _Ignore, Rest2} = DataFunc(Rest),
 
     Sof0Format = "
       b8 => bits_per_sample,
@@ -102,7 +118,7 @@ jpg_check_segment_type({#{<<"type">> := ?SOF0}, Rest}, TypeFunc, DataFunc) ->
 
     {ok, Sof0FormatFunc} =
         erl_packetparser:erlang_func_for_packetdef(Sof0Format),
-    {Details, CompontentData} = Sof0FormatFunc(Data),
+    {ok, Details, _, CompontentData} = Sof0FormatFunc(Data),
 
     io:format("Found Type: 0x~s Data: ~p D: ~p~n",
               [integer_to_list(?SOF0,16), Details, CompontentData]),
@@ -110,8 +126,12 @@ jpg_check_segment_type({#{<<"type">> := ?SOF0}, Rest}, TypeFunc, DataFunc) ->
     jpg_check_segment_type(TypeFunc(Rest2), TypeFunc, DataFunc);
 
 
-jpg_check_segment_type({#{<<"type">> := ?SOS}, Rest}, _TypeFunc, DataFunc) ->
-    { #{<<"data">> := Data}, Rest2} = DataFunc(Rest),
+jpg_check_segment_type(
+  {ok, #{<<"type">> := ?SOS}, _Matched, Rest},
+  _TypeFunc,
+  DataFunc
+) ->
+    { ok, #{<<"data">> := Data}, _Ignore, Rest2} = DataFunc(Rest),
 
     io:format("Found Type: 0x~s Data: ~p~n",
               [integer_to_list(?SOS,16), Data]),
@@ -136,20 +156,24 @@ jpg_check_segment_type({#{<<"type">> := ?SOS}, Rest}, _TypeFunc, DataFunc) ->
     {ok, SpectralSpecFunc} =
         erl_packetparser:erlang_func_for_packetdef(SpectralSpec),
 
-    {#{<<"num_components">> := Cnt}, Rest3} = SosSegFunc(Data),
+    {ok, #{<<"num_components">> := Cnt}, _Ign3, Rest3} = SosSegFunc(Data),
 
     Rest4 = sos_components(ComponentFunc(Rest3), ComponentFunc, Cnt),
     io:format("    Rest ~p~n", [Rest4]),
 
-    {H, <<>>} = SpectralSpecFunc(Rest4),
+    {ok, H, _, <<>>} = SpectralSpecFunc(Rest4),
 
     io:format("    Spectral ~p~n", [H]),
 
     io:format("    ImageData~n  ~p~n", [byte_size(Rest2)]),
     byte_size(Rest2);
 
-jpg_check_segment_type({#{<<"type">> := ?APP0}, Rest}, TypeFunc, DataFunc) ->
-    { #{<<"data">> := Data}, Rest2} = DataFunc(Rest),
+jpg_check_segment_type(
+  {ok, #{<<"type">> := ?APP0}, _Matched, Rest},
+  TypeFunc,
+  DataFunc
+) ->
+    { ok, #{<<"data">> := Data}, _Ignore, Rest2} = DataFunc(Rest),
     FormatApp0 = "
        b8[5] => magic,
        b8    => major_version,
@@ -162,14 +186,18 @@ jpg_check_segment_type({#{<<"type">> := ?APP0}, Rest}, TypeFunc, DataFunc) ->
        b8[$thumbnail_x * $thumbnail_y * 3] => thumbnail_data
     ",
     {ok, App0Func} = erl_packetparser:erlang_func_for_packetdef(FormatApp0),
-    {App0Details, _} = App0Func(Data),
+    {ok, App0Details, _, _} = App0Func(Data),
 
     io:format("Found Type: 0x~s Details: ~p~n",
               [integer_to_list(?APP0,16), App0Details]),
     jpg_check_segment_type(TypeFunc(Rest2), TypeFunc, DataFunc);
 
-jpg_check_segment_type({#{<<"type">> := ?APP1}, Rest}, TypeFunc, DataFunc) ->
-    { #{<<"data">> := Data}, Rest2} = DataFunc(Rest),
+jpg_check_segment_type(
+  {ok, #{<<"type">> := ?APP1}, _Matched, Rest},
+  TypeFunc,
+  DataFunc
+) ->
+    {ok, #{<<"data">> := Data}, _, Rest2} = DataFunc(Rest),
 
     {Magic, Rest3} = split_on_zero(Data),
 
@@ -192,22 +220,25 @@ jpg_check_segment_type({#{<<"type">> := ?APP1}, Rest}, TypeFunc, DataFunc) ->
             {ok, ExifFieldFunc} =
                 erl_packetparser:erlang_func_for_packetdef(FormatExifField),
 
-            {ExifHeaderDetails, Rest4} = ExifHeaderFunc(Rest3),
-            {FieldDetails, _} = ExifFieldFunc(Rest4),
+            {ok, ExifHeaderDetails, _, Rest4} = ExifHeaderFunc(Rest3),
+            {ok, FieldDetails, _, _} = ExifFieldFunc(Rest4),
 
-            io:format( "Exif Header : ~p~n  Field ~n  ~p~n  Rest ~n  ~p~n",
-                       [ ExifHeaderDetails,
-                         FieldDetails,
-                         Rest4 ]),
+            io:format("Exif Header : ~p~n  Field ~n  ~p~n  Rest ~n  ~p~n",
+                      [ExifHeaderDetails, FieldDetails, Rest4]),
             ok;
         _ ->
-            io:format( "Unknown Magic in APP1 : ~p Rest:~n ~p~n", [ Magic, Rest3 ])
+            io:format( "Unknown Magic in APP1 : ~p Rest:~n ~p~n",
+                       [Magic, Rest3])
     end,
 
     jpg_check_segment_type(TypeFunc(Rest2), TypeFunc, DataFunc);
 
-jpg_check_segment_type({#{<<"type">> := Type}, Rest}, TypeFunc, DataFunc) ->
-    { #{<<"data">> := Data}, Rest2} = DataFunc(Rest),
+jpg_check_segment_type(
+  {ok, #{<<"type">> := Type}, _Matched, Rest},
+  TypeFunc,
+  DataFunc
+) ->
+    { ok, #{<<"data">> := Data}, _Ignore, Rest2} = DataFunc(Rest),
     io:format("Found Type: 0x~s Data: ~p~n", [integer_to_list(Type,16), Data]),
     jpg_check_segment_type(TypeFunc(Rest2), TypeFunc, DataFunc).
 
@@ -249,37 +280,37 @@ foreach_packet_parser_end_to_end_test_() ->
        single_byte_no_label,
        "b8",
        <<123>>,
-       { #{}, <<>> }
+       { ok, #{}, <<123>>, <<>> }
       },
       {
        single_byte_big_endian,
        "b8 => f1",
        <<223>>,
-       { #{ <<"f1">> => 223 }, <<>> }
+       { ok, #{ <<"f1">> => 223 }, <<223>>, <<>> }
       },
       {
        single_byte_big_endian_signed,
        "-b8 => f1",
        <<223>>,
-       { #{ <<"f1">> => -33 }, <<>> }
+       { ok, #{ <<"f1">> => -33 }, <<223>>, <<>> }
       },
       {
        single_byte_little_endian,
        "l8 => f1",
        <<223>>,
-       { #{ <<"f1">> => 223 }, <<>> }
+       { ok, #{ <<"f1">> => 223 }, <<223>>, <<>> }
       },
       {
        single_byte_little_endian_and_signed,
        "-l8 => f1",
        <<223>>,
-       { #{ <<"f1">> => -33 }, <<>> }
+       { ok, #{ <<"f1">> => -33 }, <<223>>, <<>> }
       },
       {
        single_byte,
        "x1 => 1, b7 => len",
        <<130>>,
-       { #{ <<"len">> => 2 }, <<>> }
+       { ok, #{ <<"len">> => 2 }, <<130>>, <<>> }
       },
       {
        single_byte_off_boundary,
@@ -287,14 +318,14 @@ foreach_packet_parser_end_to_end_test_() ->
         b8 => len,
         x7",
        <<130, 123>>,
-       { #{ <<"len">> => 4 }, <<>> }
+       { ok, #{ <<"len">> => 4 }, <<130, 123>>, <<>> }
       },
       {
        using_bit_boundary,
        "x1 => 1,
         b8 => len",
        <<130, 123>>,
-       { #{ <<"len">> => 4 }, <<123:7>> }
+       { ok, #{ <<"len">> => 4 }, <<130, 0:1>>, <<123:7>> }
       },
       {
        single_byte_off_boundary_with_structure,
@@ -302,31 +333,35 @@ foreach_packet_parser_end_to_end_test_() ->
         b8{ b4 => len1, b4 => len2 },
         x7",
        <<130, 123>>,
-       { #{ <<"len1">> => 0, <<"len2">> => 4 }, <<>> }
+       { ok, #{ <<"len1">> => 0, <<"len2">> => 4 }, <<130, 123>>, <<>> }
       },
       {
        arrays_of_seven_bits,
        "b7[4] => values",
        <<130, 123, 164, 193>>,
-       { #{ <<"values">> => [65,30,116,76] }, <<1:4>> }
+       { ok,
+         #{ <<"values">> => [65,30,116,76] },
+         <<130, 123, 164, 76:4>>,
+         <<1:4>>
+       }
       },
       {
        arrays_of_seven_bits_ignore_last_four_bits,
        "b7[4] => values, x4",
        <<130, 123, 164, 193>>,
-       { #{ <<"values">> => [65,30,116,76] }, <<>> }
+       { ok, #{ <<"values">> => [65,30,116,76] }, <<130, 123, 164, 193>>, <<>> }
       },
       {
        structures_can_have_arrays,
        "b32{ b7[4] => values, x4 }",
        <<130, 123, 164, 193>>,
-       { #{ <<"values">> => [65,30,116,76] }, <<>> }
+       { ok, #{ <<"values">> => [65,30,116,76] }, <<130, 123, 164, 193>>, <<>> }
       },
       {
        structures_can_have_arrays_reverse_naming,
        "b32{ values: b7[4], x4 }",
        <<130, 123, 164, 193>>,
-       { #{ <<"values">> => [65,30,116,76] }, <<>> }
+       { ok, #{ <<"values">> => [65,30,116,76] }, <<130, 123, 164, 193>>, <<>> }
       },
       {
         little_endianness,
@@ -337,9 +372,11 @@ foreach_packet_parser_end_to_end_test_() ->
          l32{l8 => f1, l16 => f2, l4 => f3, l4 => f4},
          l8 => last",
         <<255,234,212,213,124,221,123,231,231,231>>,
-       { #{ <<"f1">> => 221, <<"f2">> => 59259, <<"f3">> => 14,
+       { ok, #{ <<"f1">> => 221, <<"f2">> => 59259, <<"f3">> => 14,
             <<"f4">> => 7, <<"last">> => 231, <<"value">> => 234,
-            <<"value2">> => 212, <<"value3">> => 31957 }, <<>> }
+            <<"value2">> => 212, <<"value3">> => 31957 },
+         <<255,234,212,213,124,221,123,231,231,231>>,
+         <<>> }
       },
       {
         big_endianness,
@@ -350,9 +387,11 @@ foreach_packet_parser_end_to_end_test_() ->
          b32{-l8 => f1, -l16 => f2, l4 => f3, l4 => f4},
          b8 => last",
         <<255,234,212,213,124,221,123,231,231,231>>,
-       { #{ <<"f1">> => -35, <<"f2">> => -6277, <<"f3">> => 14,
+       { ok, #{ <<"f1">> => -35, <<"f2">> => -6277, <<"f3">> => 14,
             <<"f4">> => 7, <<"last">> => 231, <<"value">> => 234,
-            <<"value2">> => 212, <<"value3">> => 54652 }, <<>> }
+            <<"value2">> => 212, <<"value3">> => 54652 },
+         <<255,234,212,213,124,221,123,231,231,231>>,
+         <<>> }
       }
      ],
     TestList = [{
@@ -375,11 +414,12 @@ foreach_packet_parser_successful_test_() ->
         b8[$length - 2] => data
        ",
        "fun (Binary) ->
-              <<Vlength:16/integer-big-unsigned, Vdata:(8*(Vlength - 2))/bits,
-                   UnmatchedBytes/bits>> = Binary,
-
-              { #{ <<\"length\">> => Vlength, <<\"data\">> => Vdata },
-                                UnmatchedBytes }
+            <<Vlength:16/integer-big-unsigned, Vdata:(8*(Vlength - 2))/bits,
+                   UnmatchedBits/bits>> = Binary,
+            <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                          UnmatchedBits/bits>> = Binary,
+            {ok, #{ <<\"length\">> => Vlength, <<\"data\">> => Vdata },
+                     MatchedBits, UnmatchedBits}
         end."
       },
       {
@@ -389,12 +429,15 @@ foreach_packet_parser_successful_test_() ->
         b8[$width * $height * 3] => data
        ",
        "fun (Binary) ->
-            <<Vwidth:16/integer-big-unsigned, Vheight:16/integer-big-unsigned,
-                 Vdata:(8*(Vwidth * Vheight * 3))/bits,
-                 UnmatchedBytes/bits>> = Binary,
+          <<Vwidth:16/integer-big-unsigned, Vheight:16/integer-big-unsigned,
+               Vdata:(8*(Vwidth * Vheight * 3))/bits,
+          UnmatchedBits/bits>> = Binary,
 
-            { #{ <<\"width\">> => Vwidth, <<\"height\">> => Vheight,
-                  <<\"data\">> => Vdata }, UnmatchedBytes }
+          <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                               UnmatchedBits/bits>> = Binary,
+
+          {ok, #{ <<\"width\">> => Vwidth, <<\"height\">> => Vheight,
+                     <<\"data\">> => Vdata }, MatchedBits, UnmatchedBits}
         end."
       },
       {
@@ -413,27 +456,42 @@ foreach_packet_parser_successful_test_() ->
         b32         => crc
        ",
        "fun (Binary) ->
-           <<137:8, 80:8, 78:8, 71:8, 13:8, 10:8, 26:8, 10:8,
-              Vlength:32/integer-big-unsigned, Vtype:32/bits,
-              Vdata:(8*Vlength)/bits, Vcrc:32/integer-big-unsigned,
-                     UnmatchedBytes/bits>> = Binary,
+             <<137:8, 80:8, 78:8, 71:8, 13:8, 10:8, 26:8, 10:8,
+                 Vlength:32/integer-big-unsigned, Vtype:32/bits,
+                 Vdata:(8*Vlength)/bits, Vcrc:32/integer-big-unsigned,
+                 UnmatchedBits/bits>> = Binary,
 
-           { #{ <<\"length\">> => Vlength,
-               <<\"type\">> => [ X || <<X:8/integer-big-unsigned>> <= Vtype],
-                <<\"data\">> => Vdata, <<\"crc\">> => Vcrc },
-             UnmatchedBytes
-           }
+             <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                         UnmatchedBits/bits>> = Binary,
+
+             {ok, #{ <<\"length\">> => Vlength,
+                 <<\"type\">> => [ X || <<X:8/integer-big-unsigned>> <= Vtype],
+                 <<\"data\">> => Vdata, <<\"crc\">> => Vcrc },
+                  MatchedBits, UnmatchedBits}
         end."
       },
       {
         trailing_commas_are_ok,
         "x1,",
-        "fun (Binary) -> <<_VinternalField1:1/bits, UnmatchedBytes/bits>> = Binary, { #{ }, UnmatchedBytes } end."
+        "fun (Binary) ->
+            <<_VinternalField1:1/bits, UnmatchedBits/bits>> = Binary,
+
+            <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                  UnmatchedBits/bits>> = Binary,
+
+            {ok, #{ }, MatchedBits, UnmatchedBits}
+         end."
       },
       {
         trailing_commas_are_ok_with_label,
         "x1 => 0x23,",
-        "fun (Binary) -> <<35:1, UnmatchedBytes/bits>> = Binary, { #{ }, UnmatchedBytes } end."
+        "fun (Binary) ->
+              <<35:1, UnmatchedBits/bits>> = Binary,
+
+              <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                  UnmatchedBits/bits>> = Binary,
+              {ok, #{ }, MatchedBits, UnmatchedBits}
+         end."
       },
       {
        word_on_word_boundary_with_structure,
@@ -442,12 +500,16 @@ foreach_packet_parser_successful_test_() ->
         x7",
        "fun (Binary) ->
              <<1:1, VinternalField1:8/bits, _VinternalField2:7/bits,
-                UnmatchedBytes/bits>> = Binary,
+                 UnmatchedBits/bits>> = Binary,
 
              <<Vlen1:4/integer-big-unsigned,
-                      Vlen2:4/integer-big-unsigned>> = VinternalField1,
+                   Vlen2:4/integer-big-unsigned>> = VinternalField1,
 
-             { #{ <<\"len2\">> => Vlen2, <<\"len1\">> => Vlen1 }, UnmatchedBytes }
+             <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                  UnmatchedBits/bits>> = Binary,
+
+             {ok, #{ <<\"len2\">> => Vlen2, <<\"len1\">> => Vlen1 },
+                  MatchedBits, UnmatchedBits}
         end."
       },
       {
@@ -456,10 +518,13 @@ foreach_packet_parser_successful_test_() ->
         b8 => len,
         x7",
        "fun (Binary) ->
-            <<1:1, Vlen:8/integer-big-unsigned, _VinternalField1:7/bits,
-                  UnmatchedBytes/bits>> = Binary,
+           <<1:1, Vlen:8/integer-big-unsigned, _VinternalField1:7/bits,
+                UnmatchedBits/bits>> = Binary,
 
-            { #{ <<\"len\">> => Vlen }, UnmatchedBytes }
+           <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                     UnmatchedBits/bits>> = Binary,
+
+           {ok, #{ <<\"len\">> => Vlen }, MatchedBits, UnmatchedBits}
         end."
       },
       {
@@ -467,9 +532,10 @@ foreach_packet_parser_successful_test_() ->
        "x1 => 1,
         b7 => len",
        "fun (Binary) ->
-            <<1:1, Vlen:7/integer-big-unsigned, UnmatchedBytes/bits>> = Binary,
-
-           { #{ <<\"len\">> => Vlen }, UnmatchedBytes }
+            <<1:1, Vlen:7/integer-big-unsigned, UnmatchedBits/bits>> = Binary,
+            <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                  UnmatchedBits/bits>> = Binary,
+            {ok, #{ <<\"len\">> => Vlen }, MatchedBits, UnmatchedBits}
         end."
       },
       {
@@ -479,10 +545,13 @@ foreach_packet_parser_successful_test_() ->
         36: x6,
         b7 => len",
        "fun (Binary) ->
-          <<1:1, 12:4, 36:6, Vlen:7/integer-big-unsigned,
-                UnmatchedBytes/bits>> = Binary,
+            <<1:1, 12:4, 36:6, Vlen:7/integer-big-unsigned,
+                  UnmatchedBits/bits>> = Binary,
 
-          { #{ <<\"len\">> => Vlen }, UnmatchedBytes }
+            <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                   UnmatchedBits/bits>> = Binary,
+
+            {ok, #{ <<\"len\">> => Vlen }, MatchedBits, UnmatchedBits}
         end."
       },
       {
@@ -499,17 +568,20 @@ foreach_packet_parser_successful_test_() ->
         x8",
        "fun (Binary) ->
             <<12:8, Vb82:8/integer-big-unsigned,
-               Vl123:24/integer-little-unsigned, Vb89:32/bits,
-               Vb8f:8/integer-big-unsigned, Vvolt:16/float-big-unsigned,
-               Vtemp:16/integer-big-unsigned, Vhum:8/integer-big-unsigned,
-               Vcrc:8/integer-big-unsigned, _VinternalField1:8/bits,
-               UnmatchedBytes/bits>> = Binary,
+              Vl123:24/integer-little-unsigned,
+              Vb89:32/bits, Vb8f:8/integer-big-unsigned,
+              Vvolt:16/float-big-unsigned, Vtemp:16/integer-big-unsigned,
+              Vhum:8/integer-big-unsigned, Vcrc:8/integer-big-unsigned,
+              _VinternalField1:8/bits, UnmatchedBits/bits>> = Binary,
 
-           { #{ <<\"b82\">> => Vb82, <<\"l123\">> => Vl123,
-                <<\"b89\">> => [ X || <<X:8/integer-big-unsigned>> <= Vb89],
-                <<\"b8f\">> => Vb8f, <<\"volt\">> => Vvolt,
-                <<\"temp\">> => Vtemp, <<\"hum\">> => Vhum,
-                <<\"crc\">> => Vcrc }, UnmatchedBytes }
+           <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                    UnmatchedBits/bits>> = Binary,
+
+           {ok, #{ <<\"b82\">> => Vb82, <<\"l123\">> => Vl123,
+                   <<\"b89\">> => [ X || <<X:8/integer-big-unsigned>> <= Vb89],
+                   <<\"b8f\">> => Vb8f, <<\"volt\">> => Vvolt,
+                   <<\"temp\">> => Vtemp, <<\"hum\">> => Vhum,
+                   <<\"crc\">> => Vcrc }, MatchedBits, UnmatchedBits}
         end."
       },
       {
@@ -525,19 +597,21 @@ foreach_packet_parser_successful_test_() ->
         b8    => crc,
         x8",
        "fun (Binary) ->
-           <<_VinternalField1:8/bits, Vlen:8/integer-big-unsigned,
-                Vid:24/integer-little-unsigned, Vtag:32/bits,
-                Vstatus:8/integer-big-unsigned, Vvolt:16/float-big-unsigned,
-                Vtemp:16/integer-big-unsigned, Vhum:8/integer-big-unsigned,
-                Vcrc:8/integer-big-unsigned, _VinternalField2:8/bits,
-                UnmatchedBytes/bits>> = Binary,
+             <<_VinternalField1:8/bits, Vlen:8/integer-big-unsigned,
+               Vid:24/integer-little-unsigned, Vtag:32/bits,
+               Vstatus:8/integer-big-unsigned, Vvolt:16/float-big-unsigned,
+               Vtemp:16/integer-big-unsigned, Vhum:8/integer-big-unsigned,
+               Vcrc:8/integer-big-unsigned, _VinternalField2:8/bits,
+               UnmatchedBits/bits>> = Binary,
 
-           { #{ <<\"len\">> => Vlen, <<\"id\">> => Vid,
-                <<\"tag\">> => [ X || <<X:8/integer-big-unsigned>> <= Vtag],
-                <<\"status\">> => Vstatus, <<\"volt\">> => Vvolt,
-                <<\"temp\">> => Vtemp, <<\"hum\">> => Vhum,
-                <<\"crc\">> => Vcrc },
-             UnmatchedBytes }
+            <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+               UnmatchedBits/bits>> = Binary,
+
+            {ok, #{ <<\"len\">> => Vlen, <<\"id\">> => Vid,
+                    <<\"tag\">> => [ X || <<X:8/integer-big-unsigned>> <= Vtag],
+                    <<\"status\">> => Vstatus, <<\"volt\">> => Vvolt,
+                    <<\"temp\">> => Vtemp, <<\"hum\">> => Vhum,
+                    <<\"crc\">> => Vcrc }, MatchedBits, UnmatchedBits}
         end."
       },
       {
@@ -548,15 +622,18 @@ foreach_packet_parser_successful_test_() ->
         b8[4],
         b17{b3,x6,-b8}",
        "fun (Binary) ->
-            <<_VinternalField1:8/bits, VinternalField2:8/integer-big-unsigned,
-              VinternalField3:124/integer-little-unsigned,
-              VinternalField4:32/bits, VinternalField5:17/bits,
-              UnmatchedBytes/bits>> = Binary,
+             <<_VinternalField1:8/bits, VinternalField2:8/integer-big-unsigned,
+               VinternalField3:124/integer-little-unsigned,
+               VinternalField4:32/bits, VinternalField5:17/bits,
+               UnmatchedBits/bits>> = Binary,
 
-            <<VinternalField5:3/integer-big-unsigned, _VinternalField6:6/bits,
-                VinternalField7:8/integer-big-signed>> = VinternalField5,
+             <<VinternalField5:3/integer-big-unsigned, _VinternalField6:6/bits,
+               VinternalField7:8/integer-big-signed>> = VinternalField5,
 
-            { #{ }, UnmatchedBytes }
+             <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                 UnmatchedBits/bits>> = Binary,
+
+             {ok, #{ }, MatchedBits, UnmatchedBits}
         end."
        },
       {
@@ -570,13 +647,16 @@ foreach_packet_parser_successful_test_() ->
             <<_VinternalField1:8/bits, VinternalField2:8/integer-big-unsigned,
               VinternalField3:124/integer-little-unsigned,
               VinternalField4:32/bits, VinternalField5:17/bits,
-              UnmatchedBytes/bits>> = Binary,
+              UnmatchedBits/bits>> = Binary,
 
             <<Vvalue:3/integer-big-unsigned, _VinternalField5:6/bits,
               Vcount:8/integer-big-signed>> = VinternalField5,
 
-            { #{ <<\"count\">> => Vcount, <<\"value\">> => Vvalue },
-               UnmatchedBytes }
+            <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                UnmatchedBits/bits>> = Binary,
+
+            {ok, #{ <<\"count\">> => Vcount, <<\"value\">> => Vvalue },
+                    MatchedBits, UnmatchedBits}
         end."
        },
       {
@@ -589,15 +669,18 @@ foreach_packet_parser_successful_test_() ->
        "fun (Binary) ->
             <<_VinternalField1:8/bits, Vvalue:8/integer-big-unsigned,
               Vvalue2:124/integer-little-unsigned, Vvalue3:32/bits,
-              VinternalField2:17/bits, UnmatchedBytes/bits>> = Binary,
+              VinternalField2:17/bits, UnmatchedBits/bits>> = Binary,
 
             <<Vvalue:3/integer-big-unsigned, _VinternalField2:6/bits,
               Vcount:8/integer-big-signed>> = VinternalField2,
 
-            { #{ <<\"count\">> => Vcount, <<\"value\">> => Vvalue,
-                 <<\"value3\">> => [ X || <<X:8/integer-big-unsigned>> <= Vvalue3],
-              <<\"value2\">> => Vvalue2, <<\"value\">> => Vvalue },
-             UnmatchedBytes }
+            <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+               UnmatchedBits/bits>> = Binary,
+
+            {ok, #{ <<\"count\">> => Vcount, <<\"value\">> => Vvalue,
+                    <<\"value3\">> => [ X || <<X:8/integer-big-unsigned>> <= Vvalue3],
+                    <<\"value2\">> => Vvalue2, <<\"value\">> => Vvalue },
+              MatchedBits, UnmatchedBits}
         end."
        },
       {
@@ -605,8 +688,10 @@ foreach_packet_parser_successful_test_() ->
        "b8",
        "fun (Binary) ->
             <<VinternalField1:8/integer-big-unsigned,
-                UnmatchedBytes/bits>> = Binary,
-            { #{ }, UnmatchedBytes }
+              UnmatchedBits/bits>> = Binary,
+            <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+               UnmatchedBits/bits>> = Binary,
+            {ok, #{ }, MatchedBits, UnmatchedBits}
         end."
        },
       {
@@ -618,23 +703,25 @@ foreach_packet_parser_successful_test_() ->
          "fun (Binary) ->
               <<VinternalField1:8/bits, VinternalField2:16/bits,
                 Vvalue:8/integer-big-unsigned, VinternalField3:8/bits,
-                UnmatchedBytes/bits>> = Binary,
+                  UnmatchedBits/bits>> = Binary,
 
               <<Vv1_1:1/integer-big-unsigned, Vv1_2:2/integer-big-unsigned,
                 Vv1_3:5/integer-big-unsigned>> = VinternalField1,
 
               <<Vv2_1:4/integer-big-unsigned, Vv2_2:8/integer-big-unsigned,
-                Vv3_3:4/integer-big-unsigned>> = VinternalField2,
+                 Vv3_3:4/integer-big-unsigned>> = VinternalField2,
 
               <<Vv3_1:1/integer-big-unsigned, _VinternalField3:4/bits,
-                Vv3_2:3/integer-big-unsigned>> = VinternalField3,
+                 Vv3_2:3/integer-big-unsigned>> = VinternalField3,
 
-             { #{ <<\"v3_2\">> => Vv3_2, <<\"v3_1\">> => Vv3_1,
-                 <<\"value\">> => Vvalue, <<\"v1_3\">> => Vv1_3,
-                 <<\"v1_2\">> => Vv1_2, <<\"v1_1\">> => Vv1_1,
-                 <<\"v2_1\">> => Vv2_1, <<\"v2_2\">> => Vv2_2,
-                 <<\"v3_3\">> => Vv3_3 },
-              UnmatchedBytes }
+              <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                 UnmatchedBits/bits>> = Binary,
+
+              {ok, #{ <<\"v3_2\">> => Vv3_2, <<\"v3_1\">> => Vv3_1,
+                      <<\"value\">> => Vvalue, <<\"v1_3\">> => Vv1_3,
+                      <<\"v1_2\">> => Vv1_2, <<\"v1_1\">> => Vv1_1,
+                      <<\"v2_1\">> => Vv2_1, <<\"v2_2\">> => Vv2_2,
+                      <<\"v3_3\">> => Vv3_3 }, MatchedBits, UnmatchedBits}
           end."
        }
     ],
