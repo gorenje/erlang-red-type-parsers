@@ -38,8 +38,11 @@ CURLY_OPEN  = [\{]
 CURLY_CLOSE = [\}]
 
 NEG        = [-]
+PLUS       = [+]
+MULTIPLE   = [*]
+DIVIDE     = [/]
 ENDIANNESS = [blx]
-POSTFIX    = [zfa]
+POSTFIX    = [f]
 
 Rules.
 
@@ -50,18 +53,24 @@ Rules.
 {ENDIANNESS}{NUM}{POSTFIX}      : {token, {unsigned, unsigned_postfixed(TokenChars)}}.
 {ENDIANNESS}{NUM}               : {token, {unsigned, unsigned(TokenChars)}}.
 
-{BRACKET_OPEN}{NUM}{BRACKET_CLOSE}            : {token, {array_spec, {size, array_size(TokenChars)}}}.
-{BRACKET_OPEN}{DOLLAR}{LCHARS}{BRACKET_CLOSE} : {token, {array_spec, {var_ref, var_ref(TokenChars)}}}.
-
 {ARROW}       : {token, {'=>', TokenLine}}.
 {CURLY_OPEN}  : {token, {'{', TokenLine}}.
 {CURLY_CLOSE} : {token, {'}', TokenLine}}.
 {COMMA}       : {token, {',', TokenLine}}.
 {COLON}       : {token, {':', TokenLine}}.
 
+{BRACKET_OPEN}  : {token, {'[', TokenLine}}.
+{BRACKET_CLOSE} : {token, {']', TokenLine}}.
+{DOLLAR}        : {token, {'$', TokenLine}}.
+
 {LCHARS}   : {token, {name, TokenChars}}.
 {NUM}      : {token, {number, TokenChars}}.
 {HEXCHARS} : {token, {hex, TokenChars}}.
+
+{NEG} : {token, {'-', TokenLine}}.
+{PLUS} : {token, {'+', TokenLine}}.
+{DIVIDE} : {token, {'/', TokenLine}}.
+{MULTIPLE} : {token, {'*', TokenLine}}.
 
 Erlang code.
 
@@ -79,12 +88,3 @@ unsigned_postfixed(Str) ->
 unsigned(Str) ->
     [Endianness | S2] = Str,
     {Endianness, list_to_integer(S2), nopf}.
-
-array_size([$[|Str]) ->
-    [$]|S2] = lists:reverse(Str),
-    list_to_integer(lists:reverse(S2)).
-
-var_ref([$[|Str]) ->
-    [$]|S2] = lists:reverse(Str),
-    [$$|S3] = lists:reverse(S2),
-    S3.

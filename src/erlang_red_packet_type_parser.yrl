@@ -13,6 +13,9 @@ Nonterminals
   statement_nost
   structure
   tail
+  array_spec
+  inside_array_spec
+  arithmetic
 .
 
 Terminals
@@ -21,9 +24,15 @@ Terminals
   '}'
   ','
   ':'
+  '['
+  ']'
+  '$'
+  '*'
+  '-'
+  '+'
+  '/'
   unsigned
   signed
-  array_spec
   name
   number
   hex
@@ -78,6 +87,17 @@ statement -> tail ':' head  : ['$3', '$1'].
 statements -> statement : [lists:flatten('$1')].
 statements -> statement ',' : [lists:flatten('$1')].
 statements -> statement ',' statements : [lists:flatten('$1') | '$3'].
+
+array_spec -> '[' inside_array_spec ']' : {array_spec, '$2'}.
+
+arithmetic -> '-' : '$1'.
+arithmetic -> '+' : '$1'.
+arithmetic -> '/' : '$1'.
+arithmetic -> '*' : '$1'.
+
+inside_array_spec -> number : {size, list_to_integer(element(2,'$1'))}.
+inside_array_spec -> '$' name : {var_ref, element(2,'$2')}.
+inside_array_spec -> '$' name arithmetic inside_array_spec : {operation, ['$2', element(1,'$3'), '$4']}.
 
 Erlang code.
 
@@ -207,6 +227,23 @@ create_hashmap_def(
     end;
 create_hashmap_def(
   [
+    [_SigEnd,
+     {array_spec, {operation, _Operation}},
+     {[]},
+     {name, NameStr}
+    ] | Rest
+  ],
+  Acc
+) ->
+    case is_internal_field_name(NameStr) of
+        true ->
+            create_hashmap_def(Rest, Acc);
+        false ->
+            Str = io_lib:format("<<\"~s\">> => V~s", [NameStr, NameStr]),
+            create_hashmap_def(Rest, [Str | Acc])
+    end;
+create_hashmap_def(
+  [
     [ SigEndTuple,
       ArrayTuple,
       {Structure},
@@ -280,6 +317,31 @@ create_binary_matcher(
   [
     [
      {Signedness, {Endianness, Size, Postfix}},
+     {array_spec, {operation, OperationSpec}},
+     {[]},
+     {name, NameStr}
+    ] | Rest
+  ],
+  Acc
+) ->
+    create_binary_matcher(
+      Rest,
+      [
+       io_lib:format("V~s:~s",
+                     [NameStr,
+                        typespec(Endianness,
+                                 Signedness,
+                                 {Size, oper_to_expr(OperationSpec)},
+                                 Postfix,
+                                 {[]},
+                                 oper)]) | Acc
+      ]
+     );
+
+create_binary_matcher(
+  [
+    [
+     {Signedness, {Endianness, Size, Postfix}},
      {array_spec, {size, Cnt}},
      Structure,
      {name, NameStr}
@@ -301,11 +363,34 @@ create_binary_matcher(
       ]
      ).
 
+
+%%
+%%
+oper_to_expr([{name, VarName1}, Op1, {operation, [{name, VarName2}, Op2, {size, Num}]}]) ->
+    io_lib:format("(V~s ~s V~s ~s ~b)", [VarName1, Op1, VarName2, Op2, Num]);
+oper_to_expr([{name, VarName}, Operator, {size, Num}]) ->
+    io_lib:format("(V~s ~s ~b)", [VarName, Operator, Num]);
+oper_to_expr(Operation) ->
+    io_lib:format("Unknown Operation: ~p", [Operation]).
+
+
 %% when creating the typespec, leave anything that has a structure or defines
 %% an array of values as a bitstring - these things get matched further, hence
 %% they need to remain binaries
+typespec(_Endianness, _Signedness, {Size, Expression}, _Postfix, {[]}, oper) ->
+    io_lib:format("(~b*~s)/bits", [Size, Expression]);
 typespec(_Endianness, _Signedness, {Size, VarName}, _Postfix, {[]}, var_ref) ->
     io_lib:format("(~b*V~s)/bits", [Size,VarName]);
+
+typespec($l, signed, Size, $f, {[]}, false) ->
+    io_lib:format("~b/float-little-signed", [Size]);
+typespec($l, unsigned, Size, $f, {[]}, false) ->
+    io_lib:format("~b/float-little-unsigned", [Size]);
+typespec($b, signed, Size, $f, {[]}, false) ->
+    io_lib:format("~b/float-big-signed", [Size]);
+typespec($b, unsigned, Size, $f, {[]}, false) ->
+    io_lib:format("~b/float-big-unsigned", [Size]);
+
 typespec($l, signed, Size, _Postfix, {[]}, false) ->
     io_lib:format("~b/integer-little-signed", [Size]);
 typespec($l, unsigned, Size, _Postfix, {[]}, false) ->
