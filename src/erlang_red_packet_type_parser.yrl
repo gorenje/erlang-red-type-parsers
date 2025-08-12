@@ -99,10 +99,10 @@ arithmetic -> '+' : '$1'.
 arithmetic -> '/' : '$1'.
 arithmetic -> '*' : '$1'.
 
-inside_array_spec -> bin : {size, convert_numeric_to_int(element(2,'$1'))}.
-inside_array_spec -> hex : {size, convert_numeric_to_int(element(2,'$1'))}.
-inside_array_spec -> octal : {size, convert_numeric_to_int(element(2,'$1'))}.
-inside_array_spec -> number : {size, list_to_integer(element(2,'$1'))}.
+inside_array_spec -> bin    : {size, convert_numeric_to_int('$1')}.
+inside_array_spec -> hex    : {size, convert_numeric_to_int('$1')}.
+inside_array_spec -> octal  : {size, convert_numeric_to_int('$1')}.
+inside_array_spec -> number : {size, convert_numeric_to_int('$1')}.
 inside_array_spec -> '$' name : {var_ref, element(2,'$2')}.
 inside_array_spec -> '$' name arithmetic inside_array_spec :
                          {operation, ['$2', element(1,'$3'), '$4']}.
@@ -486,11 +486,13 @@ convert_numeric([$0, $b | V]) ->
 
 %%
 %%
-convert_numeric_to_int([$0, $x | V]) ->
+convert_numeric_to_int({number, V}) ->
+    list_to_integer_with_base(V, 10);
+convert_numeric_to_int({_, [$0, $x | V]}) ->
     list_to_integer_with_base(V, 16);
-convert_numeric_to_int([$0, $o | V]) ->
+convert_numeric_to_int({_, [$0, $o | V]}) ->
     list_to_integer_with_base(V, 8);
-convert_numeric_to_int([$0, $b | V]) ->
+convert_numeric_to_int({_, [$0, $b | V]}) ->
     list_to_integer_with_base(V, 2).
 
 %%

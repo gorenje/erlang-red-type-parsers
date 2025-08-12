@@ -384,11 +384,13 @@ convert_numeric([$0, $b | V]) ->
 
 %%
 %%
-convert_numeric_to_int([$0, $x | V]) ->
+convert_numeric_to_int({number, V}) ->
+    list_to_integer_with_base(V, 10);
+convert_numeric_to_int({_, [$0, $x | V]}) ->
     list_to_integer_with_base(V, 16);
-convert_numeric_to_int([$0, $o | V]) ->
+convert_numeric_to_int({_, [$0, $o | V]}) ->
     list_to_integer_with_base(V, 8);
-convert_numeric_to_int([$0, $b | V]) ->
+convert_numeric_to_int({_, [$0, $b | V]}) ->
     list_to_integer_with_base(V, 2).
 
 %%
@@ -584,7 +586,7 @@ yecctoken2string1(Other) ->
 
 
 
--file("/code/src/erlang_red_packet_type_parser.erl", 587).
+-file("/code/src/erlang_red_packet_type_parser.erl", 589).
 
 -dialyzer({nowarn_function, yeccpars2/7}).
 -compile({nowarn_unused_function,  yeccpars2/7}).
@@ -1509,7 +1511,7 @@ yeccpars2_34_(__Stack0) ->
 yeccpars2_37_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
-                           {size, convert_numeric_to_int(element(2,___1))}
+                              {size, convert_numeric_to_int(___1)}
   end | __Stack].
 
 -compile({inline,yeccpars2_38_/1}).
@@ -1519,7 +1521,7 @@ yeccpars2_37_(__Stack0) ->
 yeccpars2_38_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
-                           {size, convert_numeric_to_int(element(2,___1))}
+                              {size, convert_numeric_to_int(___1)}
   end | __Stack].
 
 -compile({inline,yeccpars2_39_/1}).
@@ -1529,7 +1531,7 @@ yeccpars2_38_(__Stack0) ->
 yeccpars2_39_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
-                              {size, list_to_integer(element(2,___1))}
+                              {size, convert_numeric_to_int(___1)}
   end | __Stack].
 
 -compile({inline,yeccpars2_40_/1}).
@@ -1539,7 +1541,7 @@ yeccpars2_39_(__Stack0) ->
 yeccpars2_40_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
-                             {size, convert_numeric_to_int(element(2,___1))}
+                              {size, convert_numeric_to_int(___1)}
   end | __Stack].
 
 -compile({inline,yeccpars2_41_/1}).
@@ -1654,4 +1656,4 @@ yeccpars2_54_(__Stack0) ->
   end | __Stack].
 
 
--file("/code/src/erlang_red_packet_type_parser.yrl", 500).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 502).
