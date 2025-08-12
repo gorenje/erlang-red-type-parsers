@@ -277,6 +277,33 @@ foreach_packet_parser_end_to_end_test_() ->
       %%  { #{ <<"name">> => <<69,120,105,102>>}, <<0,77,77,0,42>> }
       %% },
       {
+       simple_reference_arithmetic_octal,
+       "b8 => length,
+        b8[$length * 0o7] => data
+       ",
+       <<1,1,2,3,4,5,6,7>>,
+       { ok, #{<<"data">> => <<1,2,3,4,5,6,7>>,<<"length">> => 1},
+               <<1,1,2,3,4,5,6,7>>, <<>> }
+      },
+      {
+       simple_reference_arithmetic_binary,
+       "b8 => length,
+        b8[$length * 0b01_11] => data
+       ",
+       <<1,1,2,3,4,5,6,7>>,
+       { ok, #{<<"data">> => <<1,2,3,4,5,6,7>>,<<"length">> => 1},
+               <<1,1,2,3,4,5,6,7>>, <<>> }
+      },
+      {
+       simple_reference_arithmetic_hexadecimal,
+       "b8 => length,
+        b8[$length * 0x7] => data
+       ",
+       <<1,1,2,3,4,5,6,7>>,
+       { ok, #{<<"data">> => <<1,2,3,4,5,6,7>>,<<"length">> => 1},
+               <<1,1,2,3,4,5,6,7>>, <<>> }
+      },
+      {
        single_byte_no_label,
        "b8",
        <<123>>,

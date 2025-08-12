@@ -99,9 +99,13 @@ arithmetic -> '+' : '$1'.
 arithmetic -> '/' : '$1'.
 arithmetic -> '*' : '$1'.
 
+inside_array_spec -> bin : {size, convert_numeric_to_int(element(2,'$1'))}.
+inside_array_spec -> hex : {size, convert_numeric_to_int(element(2,'$1'))}.
+inside_array_spec -> octal : {size, convert_numeric_to_int(element(2,'$1'))}.
 inside_array_spec -> number : {size, list_to_integer(element(2,'$1'))}.
 inside_array_spec -> '$' name : {var_ref, element(2,'$2')}.
-inside_array_spec -> '$' name arithmetic inside_array_spec : {operation, ['$2', element(1,'$3'), '$4']}.
+inside_array_spec -> '$' name arithmetic inside_array_spec :
+                         {operation, ['$2', element(1,'$3'), '$4']}.
 
 Erlang code.
 
@@ -378,7 +382,9 @@ create_binary_matcher(
 
 %%
 %%
-oper_to_expr([{name, VarName1}, Op1, {operation, [{name, VarName2}, Op2, {size, Num}]}]) ->
+oper_to_expr(
+  [{name, VarName1}, Op1, {operation, [{name, VarName2}, Op2, {size, Num}]}]
+) ->
     io_lib:format("(V~s ~s V~s ~s ~b)", [VarName1, Op1, VarName2, Op2, Num]);
 oper_to_expr([{name, VarName}, Operator, {size, Num}]) ->
     io_lib:format("(V~s ~s ~b)", [VarName, Operator, Num]);
@@ -477,6 +483,15 @@ convert_numeric([$0, $o | V]) ->
     integer_to_list(list_to_integer_with_base(V, 8));
 convert_numeric([$0, $b | V]) ->
     integer_to_list(list_to_integer_with_base(V, 2)).
+
+%%
+%%
+convert_numeric_to_int([$0, $x | V]) ->
+    list_to_integer_with_base(V, 16);
+convert_numeric_to_int([$0, $o | V]) ->
+    list_to_integer_with_base(V, 8);
+convert_numeric_to_int([$0, $b | V]) ->
+    list_to_integer_with_base(V, 2).
 
 %%
 %%
