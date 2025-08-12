@@ -23,26 +23,28 @@ Definitions.
 
 WHITESPACE = [\s\t\n\r]
 
-ARROW    = [\=][\>]
-COLON    = [\:]
-COMMA    = [,]
-NUM      = [0-9]+
-LCHARS   = [a-z_][a-z0-9A-Z_-]*
-HEXCHARS = 0x[a-f0-9A-F]+
-DOLLAR   = [$]
-
-BRACKET_OPEN  = [\[]
-BRACKET_CLOSE = [\]]
-
-CURLY_OPEN  = [\{]
-CURLY_CLOSE = [\}]
-
+ARROW      = [\=][\>]
+COLON      = [\:]
+COMMA      = [,]
+NUM        = [0-9][0-9_]*
+LCHARS     = [a-z_][a-z0-9A-Z_-]*
+DOLLAR     = [$]
 NEG        = [-]
 PLUS       = [+]
 MULTIPLE   = [*]
 DIVIDE     = [/]
 ENDIANNESS = [blx]
 POSTFIX    = [f]
+
+HEXCHARS   = 0[xX][a-f0-9A-F][a-f0-9A-F_]*
+OCTALCHARS = 0[oO][0-7][0-7_]*
+BINCHARS   = 0[bB][01][01_]*
+
+BRACKET_OPEN  = [\[]
+BRACKET_CLOSE = [\]]
+
+CURLY_OPEN  = [\{]
+CURLY_CLOSE = [\}]
 
 Rules.
 
@@ -63,9 +65,11 @@ Rules.
 {BRACKET_CLOSE} : {token, {']', TokenLine}}.
 {DOLLAR}        : {token, {'$', TokenLine}}.
 
-{LCHARS}   : {token, {name, TokenChars}}.
-{NUM}      : {token, {number, TokenChars}}.
-{HEXCHARS} : {token, {hex, TokenChars}}.
+{LCHARS}     : {token, {name,   TokenChars}}.
+{NUM}        : {token, {number, remove_underscores(TokenChars)}}.
+{HEXCHARS}   : {token, {hex,    remove_underscores(TokenChars)}}.
+{OCTALCHARS} : {token, {octal,  remove_underscores(TokenChars)}}.
+{BINCHARS}   : {token, {bin,    remove_underscores(TokenChars)}}.
 
 {NEG} : {token, {'-', TokenLine}}.
 {PLUS} : {token, {'+', TokenLine}}.
@@ -88,3 +92,6 @@ unsigned_postfixed(Str) ->
 unsigned(Str) ->
     [Endianness | S2] = Str,
     {Endianness, list_to_integer(S2), nopf}.
+
+remove_underscores(Chars) ->
+    string:lowercase(string:join(string:replace(Chars, "_", "", all),"")).

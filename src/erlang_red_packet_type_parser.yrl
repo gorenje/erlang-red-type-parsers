@@ -36,6 +36,8 @@ Terminals
   name
   number
   hex
+  bin
+  octal
 .
 
 Rootsymbol
@@ -60,6 +62,8 @@ tail -> name     : '$1'.
 tail -> unsigned : to_name('$1').
 tail -> number   : to_name('$1').
 tail -> hex      : to_name('$1').
+tail -> bin      : to_name('$1').
+tail -> octal    : to_name('$1').
 
 % structure aren't recursive, it is not possible to have a structure inside
 % a structure - prevent that.
@@ -456,22 +460,25 @@ to_name({unsigned, {E, L, nopf}}) ->
     {name, [E] ++ integer_to_list(L)};
 to_name({unsigned, {E, L, P}}) ->
     {name, [E] ++ integer_to_list(L) ++ [P]};
-to_name({number,Num}) ->
+to_name({number, Num}) ->
     {name, Num};
 to_name({hex, HexStr}) ->
-    {name, convert_hex(HexStr)}.
+    {name, convert_numeric(HexStr)};
+to_name({bin, BinStr}) ->
+    {name, convert_numeric(BinStr)};
+to_name({octal, OctalStr}) ->
+    {name, convert_numeric(OctalStr)}.
 
 %%
 %%
-convert_hex([$0 | V]) ->
-    integer_to_list(convert_hex_remove_x(V)).
+convert_numeric([$0, $x | V]) ->
+    integer_to_list(list_to_integer_with_base(V, 16));
+convert_numeric([$0, $o | V]) ->
+    integer_to_list(list_to_integer_with_base(V, 8));
+convert_numeric([$0, $b | V]) ->
+    integer_to_list(list_to_integer_with_base(V, 2)).
 
-convert_hex_remove_x([$X | V]) ->
-    hexstring_to_number(V, length(V) rem 2);
-convert_hex_remove_x([$x | V]) ->
-    hexstring_to_number(V, length(V) rem 2).
-
-hexstring_to_number(V, 1) ->
-    hexstring_to_number([$0 | V], 0);
-hexstring_to_number(V, 0) ->
-    binary:decode_unsigned(binary:decode_hex(list_to_binary(V))).
+%%
+%%
+list_to_integer_with_base(V, B) ->
+    binary_to_integer(list_to_binary(V), B).

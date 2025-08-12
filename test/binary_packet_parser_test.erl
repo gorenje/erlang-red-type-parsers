@@ -409,6 +409,25 @@ foreach_packet_parser_end_to_end_test_() ->
 foreach_packet_parser_successful_test_() ->
     Tests = [
       {
+       support_octal_bin_hex_with_underscores,
+       "x16 => 0xF_F_AB___,
+        x16 => 0XF_F_AB___,
+        x16 => 0b0110_1111___0001_1010_____,
+        x16 => 0B0110_1111___0001_1010_____,
+        x15 => 0o76__5_4_1____,
+        x15 => 0O76__5_4_1____
+       ",
+       "fun (Binary) ->
+            <<65451:16, 65451:16, 28442:16, 28442:16, 32097:15, 32097:15,
+                UnmatchedBits/bits>> = Binary,
+
+            <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                  UnmatchedBits/bits>> = Binary,
+
+            {ok, #{ }, MatchedBits, UnmatchedBits}
+        end."
+      },
+      {
        support_simple_arithemtic_operations,
        "b16 => length,
         b8[$length - 2] => data
