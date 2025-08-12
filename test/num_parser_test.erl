@@ -76,6 +76,16 @@ foreach_parser_success_test_() ->
             3745
         },
         {
+            simple_octal_value,
+            "0o7",
+            7
+        },
+        {
+            octal_negative_value,
+            "-0o7123_1211_3333_7777",
+            -252005216796671
+        },
+        {
             simple_binary_longer,
             "0b1010100001",
             673

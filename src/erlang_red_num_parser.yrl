@@ -19,6 +19,7 @@ Terminals
   hexadecimal
   binary
   integer
+  octal
 .
 
 Rootsymbol
@@ -57,6 +58,9 @@ number -> binary : convert_binary('$1').
 number -> '-' hexadecimal : convert_hex('$2') * -1.
 number -> hexadecimal : convert_hex('$1').
 
+number -> '-' octal : convert_octal('$2') * -1.
+number -> octal : convert_octal('$1').
+
 number -> '-' integer : element(1,string:to_integer(element(3,'$2'))) * -1.
 number -> integer : element(1,string:to_integer(element(3,'$1'))).
 
@@ -75,27 +79,28 @@ convert_hex({_, _, [$0 | V]}) ->
     convert_hex_remove_x(V).
 
 convert_hex_remove_x([$X | V]) ->
-    hexstring_to_number(V, length(V) rem 2);
+    list_to_integer_with_base(V, 16);
 convert_hex_remove_x([$x | V]) ->
-    hexstring_to_number(V, length(V) rem 2).
+    list_to_integer_with_base(V, 16).
 
-hexstring_to_number(V, 1) ->
-    hexstring_to_number([$0 | V], 0);
-hexstring_to_number(V, 0) ->
-    binary:decode_unsigned(binary:decode_hex(list_to_binary(V))).
+%%
+convert_octal({_, _, [$0 | V]}) ->
+    convert_octal_remove_o(V).
+
+convert_octal_remove_o([$o | V]) ->
+    list_to_integer_with_base(V, 8);
+convert_octal_remove_o([$O | V]) ->
+    list_to_integer_with_base(V, 8).
 
 %%
 convert_binary({_, _, [$0 | V]}) ->
     convert_binary_remove_b(V).
 
 convert_binary_remove_b([$B | V]) ->
-    binary_list_to_integer(lists:reverse(V), 0, 1);
+    list_to_integer_with_base(V, 2);
 convert_binary_remove_b([$b | V]) ->
-    binary_list_to_integer(lists:reverse(V), 0, 1).
+    list_to_integer_with_base(V, 2).
 
-binary_list_to_integer([], Total, _) ->
-    Total;
-binary_list_to_integer([$1 | Rest], Total, CurrentValue) ->
-    binary_list_to_integer(Rest, Total + CurrentValue, CurrentValue * 2);
-binary_list_to_integer([$0 | Rest], Total, CurrentValue) ->
-    binary_list_to_integer(Rest, Total, CurrentValue * 2).
+%%
+list_to_integer_with_base(V, B) ->
+    binary_to_integer(list_to_binary(V), B).
