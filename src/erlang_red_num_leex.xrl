@@ -24,4 +24,4 @@ Rules.
 Erlang code.
 
 remove_underscores(Chars) ->
-    string:join(string:replace(Chars, "_", "", all),"").
+    string:lowercase(string:join(string:replace(Chars, "_", "", all),"")).

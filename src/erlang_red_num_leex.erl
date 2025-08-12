@@ -15,7 +15,7 @@
 -file("/code/src/erlang_red_num_leex.xrl", 24).
 
 remove_underscores(Chars) ->
-    string:join(string:replace(Chars, "_", "", all),"").
+    string:lowercase(string:join(string:replace(Chars, "_", "", all),"")).
 
 -file("/usr/local/lib/erlang/lib/parsetools-2.6/include/leexinc.hrl", 14).
 

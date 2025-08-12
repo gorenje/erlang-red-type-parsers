@@ -49,20 +49,13 @@ float -> integer '.' 'e' integer             : convert_float([e3('$1'), ".0e", e
 float -> integer '.' integer                 : convert_float([e3('$1'), ".", e3('$3')]).
 float -> '.' integer                         : convert_float(["0.", e3('$2')]).
 
-number -> '-' float : '$2' * -1.
-number -> float : '$1'.
+number -> float       : '$1'.
+number -> binary      : convert_numeric('$1').
+number -> hexadecimal : convert_numeric('$1').
+number -> octal       : convert_numeric('$1').
+number -> integer     : convert_numeric('$1').
 
-number -> '-' binary : convert_binary('$2') * -1.
-number -> binary : convert_binary('$1').
-
-number -> '-' hexadecimal : convert_hex('$2') * -1.
-number -> hexadecimal : convert_hex('$1').
-
-number -> '-' octal : convert_octal('$2') * -1.
-number -> octal : convert_octal('$1').
-
-number -> '-' integer : element(1,string:to_integer(element(3,'$2'))) * -1.
-number -> integer : element(1,string:to_integer(element(3,'$1'))).
+number -> '-' number : '$2' * -1.
 
 %%
 %%
@@ -74,31 +67,13 @@ e3(T) ->
 convert_float(Lst) ->
     element(1, string:to_float(list_to_binary(Lst))).
 
-%%
-convert_hex({_, _, [$0 | V]}) ->
-    convert_hex_remove_x(V).
-
-convert_hex_remove_x([$X | V]) ->
+convert_numeric({integer,_, V}) ->
+    list_to_integer_with_base(V, 10);
+convert_numeric({_,_, [$0, $x | V]}) ->
     list_to_integer_with_base(V, 16);
-convert_hex_remove_x([$x | V]) ->
-    list_to_integer_with_base(V, 16).
-
-%%
-convert_octal({_, _, [$0 | V]}) ->
-    convert_octal_remove_o(V).
-
-convert_octal_remove_o([$o | V]) ->
+convert_numeric({_,_, [$0, $o | V]}) ->
     list_to_integer_with_base(V, 8);
-convert_octal_remove_o([$O | V]) ->
-    list_to_integer_with_base(V, 8).
-
-%%
-convert_binary({_, _, [$0 | V]}) ->
-    convert_binary_remove_b(V).
-
-convert_binary_remove_b([$B | V]) ->
-    list_to_integer_with_base(V, 2);
-convert_binary_remove_b([$b | V]) ->
+convert_numeric({_,_, [$0, $b | V]}) ->
     list_to_integer_with_base(V, 2).
 
 %%

@@ -8,7 +8,7 @@
 -module(erlang_red_num_parser).
 -file("/code/src/erlang_red_num_parser.erl", 9).
 -export([parse/1, parse_and_scan/1, format_error/1]).
--file("/code/src/erlang_red_num_parser.yrl", 69).
+-file("/code/src/erlang_red_num_parser.yrl", 62).
 
 e3(T) ->
     element(3, T).
@@ -16,31 +16,13 @@ e3(T) ->
 convert_float(Lst) ->
     element(1, string:to_float(list_to_binary(Lst))).
 
-%%
-convert_hex({_, _, [$0 | V]}) ->
-    convert_hex_remove_x(V).
-
-convert_hex_remove_x([$X | V]) ->
+convert_numeric({integer,_, V}) ->
+    list_to_integer_with_base(V, 10);
+convert_numeric({_,_, [$0, $x | V]}) ->
     list_to_integer_with_base(V, 16);
-convert_hex_remove_x([$x | V]) ->
-    list_to_integer_with_base(V, 16).
-
-%%
-convert_octal({_, _, [$0 | V]}) ->
-    convert_octal_remove_o(V).
-
-convert_octal_remove_o([$o | V]) ->
+convert_numeric({_,_, [$0, $o | V]}) ->
     list_to_integer_with_base(V, 8);
-convert_octal_remove_o([$O | V]) ->
-    list_to_integer_with_base(V, 8).
-
-%%
-convert_binary({_, _, [$0 | V]}) ->
-    convert_binary_remove_b(V).
-
-convert_binary_remove_b([$B | V]) ->
-    list_to_integer_with_base(V, 2);
-convert_binary_remove_b([$b | V]) ->
+convert_numeric({_,_, [$0, $b | V]}) ->
     list_to_integer_with_base(V, 2).
 
 %%
@@ -235,7 +217,7 @@ yecctoken2string1(Other) ->
 
 
 
--file("/code/src/erlang_red_num_parser.erl", 238).
+-file("/code/src/erlang_red_num_parser.erl", 220).
 
 -dialyzer({nowarn_function, yeccpars2/7}).
 -compile({nowarn_unused_function,  yeccpars2/7}).
@@ -248,7 +230,7 @@ yeccpars2(0=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 %% yeccpars2(3=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 %%  yeccpars2_3(S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccpars2(4=S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_4(S, Cat, Ss, Stack, T, Ts, Tzr);
+ yeccpars2_0(S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccpars2(5=S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_5(S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccpars2(6=S, Cat, Ss, Stack, T, Ts, Tzr) ->
@@ -299,14 +281,6 @@ yeccpars2(28=S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_28(S, Cat, Ss, Stack, T, Ts, Tzr);
 %% yeccpars2(29=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 %%  yeccpars2_29(S, Cat, Ss, Stack, T, Ts, Tzr);
-yeccpars2(30=S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_30(S, Cat, Ss, Stack, T, Ts, Tzr);
-yeccpars2(31=S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_31(S, Cat, Ss, Stack, T, Ts, Tzr);
-yeccpars2(32=S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_32(S, Cat, Ss, Stack, T, Ts, Tzr);
-yeccpars2(33=S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_33(S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccpars2(Other, _, _, _, _, _, _) ->
  erlang:error({yecc_bug,"1.4",{missing_state_in_action_table, Other}}).
 
@@ -346,20 +320,7 @@ yeccpars2_3(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  NewStack = yeccpars2_3_(Stack),
  yeccgoto_number(hd(Ss), Cat, Ss, NewStack, T, Ts, Tzr).
 
--dialyzer({nowarn_function, yeccpars2_4/7}).
--compile({nowarn_unused_function,  yeccpars2_4/7}).
-yeccpars2_4(S, '.', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 5, Ss, Stack, T, Ts, Tzr);
-yeccpars2_4(S, 'binary', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 30, Ss, Stack, T, Ts, Tzr);
-yeccpars2_4(S, 'hexadecimal', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 31, Ss, Stack, T, Ts, Tzr);
-yeccpars2_4(S, 'integer', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 32, Ss, Stack, T, Ts, Tzr);
-yeccpars2_4(S, 'octal', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 33, Ss, Stack, T, Ts, Tzr);
-yeccpars2_4(_, _, _, _, T, _, _) ->
- yeccerror(T).
+%% yeccpars2_4: see yeccpars2_0
 
 -dialyzer({nowarn_function, yeccpars2_5/7}).
 -compile({nowarn_unused_function,  yeccpars2_5/7}).
@@ -550,49 +511,19 @@ yeccpars2_29(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  NewStack = yeccpars2_29_(Stack),
  yeccgoto_number(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
 
--dialyzer({nowarn_function, yeccpars2_30/7}).
--compile({nowarn_unused_function,  yeccpars2_30/7}).
-yeccpars2_30(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
- [_|Nss] = Ss,
- NewStack = yeccpars2_30_(Stack),
- yeccgoto_number(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
-
--dialyzer({nowarn_function, yeccpars2_31/7}).
--compile({nowarn_unused_function,  yeccpars2_31/7}).
-yeccpars2_31(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
- [_|Nss] = Ss,
- NewStack = yeccpars2_31_(Stack),
- yeccgoto_number(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
-
--dialyzer({nowarn_function, yeccpars2_32/7}).
--compile({nowarn_unused_function,  yeccpars2_32/7}).
-yeccpars2_32(S, '.', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 10, Ss, Stack, T, Ts, Tzr);
-yeccpars2_32(S, 'e', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 11, Ss, Stack, T, Ts, Tzr);
-yeccpars2_32(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
- [_|Nss] = Ss,
- NewStack = yeccpars2_32_(Stack),
- yeccgoto_number(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
-
--dialyzer({nowarn_function, yeccpars2_33/7}).
--compile({nowarn_unused_function,  yeccpars2_33/7}).
-yeccpars2_33(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
- [_|Nss] = Ss,
- NewStack = yeccpars2_33_(Stack),
- yeccgoto_number(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
-
 -dialyzer({nowarn_function, yeccgoto_float/7}).
 -compile({nowarn_unused_function,  yeccgoto_float/7}).
 yeccgoto_float(0=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_3(_S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccgoto_float(4=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_29(_S, Cat, Ss, Stack, T, Ts, Tzr).
+ yeccpars2_3(_S, Cat, Ss, Stack, T, Ts, Tzr).
 
 -dialyzer({nowarn_function, yeccgoto_number/7}).
 -compile({nowarn_unused_function,  yeccgoto_number/7}).
 yeccgoto_number(0=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_2(_S, Cat, Ss, Stack, T, Ts, Tzr).
+ yeccpars2_2(_S, Cat, Ss, Stack, T, Ts, Tzr);
+yeccgoto_number(4=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
+ yeccpars2_29(_S, Cat, Ss, Stack, T, Ts, Tzr).
 
 -dialyzer({nowarn_function, yeccgoto_root/7}).
 -compile({nowarn_unused_function,  yeccgoto_root/7}).
@@ -612,51 +543,51 @@ yeccpars2_2_(__Stack0) ->
 -compile({inline,yeccpars2_3_/1}).
 -dialyzer({nowarn_function, yeccpars2_3_/1}).
 -compile({nowarn_unused_function,  yeccpars2_3_/1}).
--file("/code/src/erlang_red_num_parser.yrl", 49).
+-file("/code/src/erlang_red_num_parser.yrl", 48).
 yeccpars2_3_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
-                  ___1
+                        ___1
   end | __Stack].
 
 -compile({inline,yeccpars2_6_/1}).
 -dialyzer({nowarn_function, yeccpars2_6_/1}).
 -compile({nowarn_unused_function,  yeccpars2_6_/1}).
--file("/code/src/erlang_red_num_parser.yrl", 52).
+-file("/code/src/erlang_red_num_parser.yrl", 49).
 yeccpars2_6_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
-                   convert_binary(___1)
+                        convert_numeric(___1)
   end | __Stack].
 
 -compile({inline,yeccpars2_7_/1}).
 -dialyzer({nowarn_function, yeccpars2_7_/1}).
 -compile({nowarn_unused_function,  yeccpars2_7_/1}).
--file("/code/src/erlang_red_num_parser.yrl", 55).
+-file("/code/src/erlang_red_num_parser.yrl", 50).
 yeccpars2_7_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
-                        convert_hex(___1)
+                        convert_numeric(___1)
   end | __Stack].
 
 -compile({inline,yeccpars2_8_/1}).
 -dialyzer({nowarn_function, yeccpars2_8_/1}).
 -compile({nowarn_unused_function,  yeccpars2_8_/1}).
--file("/code/src/erlang_red_num_parser.yrl", 61).
+-file("/code/src/erlang_red_num_parser.yrl", 52).
 yeccpars2_8_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
-                    element(1,string:to_integer(element(3,___1)))
+                        convert_numeric(___1)
   end | __Stack].
 
 -compile({inline,yeccpars2_9_/1}).
 -dialyzer({nowarn_function, yeccpars2_9_/1}).
 -compile({nowarn_unused_function,  yeccpars2_9_/1}).
--file("/code/src/erlang_red_num_parser.yrl", 58).
+-file("/code/src/erlang_red_num_parser.yrl", 51).
 yeccpars2_9_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
-                  convert_octal(___1)
+                        convert_numeric(___1)
   end | __Stack].
 
 -compile({inline,yeccpars2_13_/1}).
@@ -762,52 +693,12 @@ yeccpars2_28_(__Stack0) ->
 -compile({inline,yeccpars2_29_/1}).
 -dialyzer({nowarn_function, yeccpars2_29_/1}).
 -compile({nowarn_unused_function,  yeccpars2_29_/1}).
--file("/code/src/erlang_red_num_parser.yrl", 48).
+-file("/code/src/erlang_red_num_parser.yrl", 54).
 yeccpars2_29_(__Stack0) ->
  [___2,___1 | __Stack] = __Stack0,
  [begin
-                      ___2 * -1
-  end | __Stack].
-
--compile({inline,yeccpars2_30_/1}).
--dialyzer({nowarn_function, yeccpars2_30_/1}).
--compile({nowarn_unused_function,  yeccpars2_30_/1}).
--file("/code/src/erlang_red_num_parser.yrl", 51).
-yeccpars2_30_(__Stack0) ->
- [___2,___1 | __Stack] = __Stack0,
- [begin
-                       convert_binary(___2) * -1
-  end | __Stack].
-
--compile({inline,yeccpars2_31_/1}).
--dialyzer({nowarn_function, yeccpars2_31_/1}).
--compile({nowarn_unused_function,  yeccpars2_31_/1}).
--file("/code/src/erlang_red_num_parser.yrl", 54).
-yeccpars2_31_(__Stack0) ->
- [___2,___1 | __Stack] = __Stack0,
- [begin
-                            convert_hex(___2) * -1
-  end | __Stack].
-
--compile({inline,yeccpars2_32_/1}).
--dialyzer({nowarn_function, yeccpars2_32_/1}).
--compile({nowarn_unused_function,  yeccpars2_32_/1}).
--file("/code/src/erlang_red_num_parser.yrl", 60).
-yeccpars2_32_(__Stack0) ->
- [___2,___1 | __Stack] = __Stack0,
- [begin
-                        element(1,string:to_integer(element(3,___2))) * -1
-  end | __Stack].
-
--compile({inline,yeccpars2_33_/1}).
--dialyzer({nowarn_function, yeccpars2_33_/1}).
--compile({nowarn_unused_function,  yeccpars2_33_/1}).
--file("/code/src/erlang_red_num_parser.yrl", 57).
-yeccpars2_33_(__Stack0) ->
- [___2,___1 | __Stack] = __Stack0,
- [begin
-                      convert_octal(___2) * -1
+                       ___2 * -1
   end | __Stack].
 
 
--file("/code/src/erlang_red_num_parser.yrl", 107).
+-file("/code/src/erlang_red_num_parser.yrl", 82).
