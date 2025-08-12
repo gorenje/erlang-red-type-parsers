@@ -81,6 +81,11 @@ foreach_parser_success_test_() ->
             673
         },
         {
+            simple_binary_with_underscores,
+            "0b1010_1000_01_____",
+            673
+        },
+        {
             simple_binary,
             "0b1",
             1
@@ -99,6 +104,11 @@ foreach_parser_success_test_() ->
             simple_hexadecimal,
             "0x12",
             18
+        },
+        {
+            long_hexadecimal_with_underscores,
+            "0x1234_5678_9abc_def___",
+            81985529216486895
         },
         {
             simple_capital_hexadecimal,
@@ -176,6 +186,14 @@ foreach_leex_failure_test_() ->
         {
             hex_isnt_hex,
             "0xhex"
+        },
+        {
+            no_leading_underscores_binary,
+            "0b_1010_10101"
+        },
+        {
+            no_leading_underscores_hexadecimal,
+            "0x_abcd_113_123"
         }
     ],
 
@@ -194,7 +212,7 @@ foreach_leex_failure_test_() ->
 
     {inparallel, TestList}.
 
-foreach_leex_illegals_test_() ->
+foreach_leex_illegals_caught_by_parser_test_() ->
     %% illegal numbers are also tokenised but they don't get past the yecc'er
     Tests = [
         {
