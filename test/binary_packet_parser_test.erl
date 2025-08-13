@@ -277,6 +277,15 @@ foreach_packet_parser_end_to_end_test_() ->
       %%  { #{ <<"name">> => <<69,120,105,102>>}, <<0,77,77,0,42>> }
       %% },
       {
+       simple_reference_arithmetic_octal_with_underscore,
+       "b8 => _length,
+        b8[$_length * 0o7] => _data
+       ",
+       <<1,1,2,3,4,5,6,7>>,
+       { ok, #{<<"_data">> => <<1,2,3,4,5,6,7>>,<<"_length">> => 1},
+               <<1,1,2,3,4,5,6,7>>, <<>> }
+      },
+      {
        simple_reference_arithmetic_octal,
        "b8 => length,
         b8[$length * 0o7] => data
@@ -805,6 +814,10 @@ foreach_packet_parser_failed_test_() ->
        "b8{} => var_name"
        },
       {
+       minus_not_allowed_in_name,
+       "b8 => var-name"
+       },
+      {
        recursive_structures_not_allowed,
        "b8{ b7{ b6 => var3 } => var } => var_name"
        }
@@ -816,6 +829,26 @@ foreach_packet_parser_failed_test_() ->
                              erlang_red_packet_type_leex:string(SrcString),
                          R =
                              erlang_red_packet_type_parser:parse(Tokens),
+                         ?assertEqual(error, element(1,R))
+                 end
+     } || {TestCaseName, SrcString} <- Tests],
+
+    {inparallel, TestList}.
+
+foreach_packet_leex_failure_test_() ->
+    Tests = [
+      {
+       labels_not_allow_to_start_with_upper_case,
+       "x8,
+        b8 => NoStartWithUppercase
+       "
+      }
+    ],
+
+    TestList = [{
+      atom_to_binary(TestCaseName),
+      timeout,5, fun() ->
+                         R = erlang_red_packet_type_leex:string(SrcString),
                          ?assertEqual(error, element(1,R))
                  end
      } || {TestCaseName, SrcString} <- Tests],
@@ -836,11 +869,11 @@ foreach_packet_leex_successful_test_() ->
        },
       {
        curly_brackets_specification,
-       "x8, b8, l124, b8[4], b17{b3 => value,x6,-b8 => count}"
+       "x8, b8, l124, b8[4], b17{b3 => _value,x6,-b8 => count}"
        },
       {
        naming_using_colon,
-       "x8, value: b8, value2: l124, b8[4] => value3,
+       "x8, _value: b8, value2: l124, b8[4] => value3,
                             b17{b3 => value,x6,-b8 => count}"
        },
       {
@@ -848,6 +881,12 @@ foreach_packet_leex_successful_test_() ->
        "x8 => x8,
           b8 => b81, l24a => l123, b8[4] => b89,
             b8 => status, b16 => volt, b16 => temp, b8 => hum, b8 => crc, x8"
+      },
+      {
+       minus_not_allowed_in_names_but_leexable,
+       "x8,
+        b8 => len-minus
+       "
       }
     ],
 

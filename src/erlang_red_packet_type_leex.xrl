@@ -27,7 +27,7 @@ ARROW      = [\=][\>]
 COLON      = [\:]
 COMMA      = [,]
 NUM        = [0-9][0-9_]*
-LCHARS     = [a-z_][a-z0-9A-Z_-]*
+LCHARS     = [a-z_][a-z0-9A-Z_]*
 DOLLAR     = [$]
 NEG        = [-]
 PLUS       = [+]
@@ -94,4 +94,4 @@ unsigned(Str) ->
     {Endianness, list_to_integer(S2), nopf}.
 
 remove_underscores(Chars) ->
-    string:lowercase(string:join(string:replace(Chars, "_", "", all),"")).
+    string:lowercase(string:join(string:replace(Chars, "_", "", all), "")).
