@@ -86,7 +86,7 @@ This is what the Packet Type parser does - it takes a Packet representation and 
 Packet type parser example
 ----
 
-Reading the chunks from an PNG image:
+Extracting chunks from a PNG image:
 
 ```erlang
 collect_png_chunks(<<>>, Acc, _ChunkFunc) ->
@@ -130,7 +130,7 @@ check_parsing_of_png_image_test() ->
     ?assertEqual(["IHDR","iCCP","eXIf","iTXt","IDAT","IEND"], Types).
 ```
 
-This takes advantage of the variable reference which is an extension to the Packet definition language. The reference makes this kind of data handling super simple since the packets defined their lengths.
+This example takes advantage of the variable reference which is an extension to the Packet definition language. The reference makes this kind of data handling simpler as packets define their own lengths.
 
 Alternative would be a multi step: read first part of packet, create a new packet defintion, read data chunk, rinse and repeat.
 
@@ -145,7 +145,14 @@ b32         => crc
 
 Use a `$` prefix for the referenced variable name to make this work.
 
+Also supported is very [simple](https://github.com/gorenje/erlang-red-type-parsers/commit/aa3edd08399e0722919b26ad0889929bf172b466) arithmetic operations.
+
 Build
 -----
 
     $ rebar3 compile
+
+Test
+-----
+
+    $ rebar3 eunit
