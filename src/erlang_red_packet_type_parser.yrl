@@ -15,6 +15,7 @@ Nonterminals
   tail
   array_spec
   inside_array_spec
+  inside_tail_array_spec
   arithmetic
 .
 
@@ -64,6 +65,7 @@ tail -> number   : to_name('$1').
 tail -> hex      : to_name('$1').
 tail -> bin      : to_name('$1').
 tail -> octal    : to_name('$1').
+tail -> '[' inside_tail_array_spec ']' : {array_tail_spec, lists:flatten('$2')}.
 
 % structure aren't recursive, it is not possible to have a structure inside
 % a structure - prevent that.
@@ -99,6 +101,7 @@ arithmetic -> '+' : '$1'.
 arithmetic -> '/' : '$1'.
 arithmetic -> '*' : '$1'.
 
+%% This is used for "b8[4] => ...."
 inside_array_spec -> bin    : {size, convert_numeric_to_int('$1')}.
 inside_array_spec -> hex    : {size, convert_numeric_to_int('$1')}.
 inside_array_spec -> octal  : {size, convert_numeric_to_int('$1')}.
@@ -106,6 +109,16 @@ inside_array_spec -> number : {size, convert_numeric_to_int('$1')}.
 inside_array_spec -> '$' name : {var_ref, element(2,'$2')}.
 inside_array_spec -> '$' name arithmetic inside_array_spec :
                          {operation, ['$2', element(1,'$3'), '$4']}.
+
+%% This is used for "x8 => [1,0,1,0,0,0,0,0]"
+inside_tail_array_spec -> bin    : convert_numeric_to_int('$1').
+inside_tail_array_spec -> hex    : convert_numeric_to_int('$1').
+inside_tail_array_spec -> octal  : convert_numeric_to_int('$1').
+inside_tail_array_spec -> number : convert_numeric_to_int('$1').
+inside_tail_array_spec -> '$' name : '$2'.
+inside_tail_array_spec ->
+    inside_tail_array_spec ',' inside_tail_array_spec : ['$1', '$3'].
+
 
 Erlang code.
 
@@ -175,6 +188,45 @@ structure_binary_matchers(Structure, NameStr) ->
 %%
 create_hashmap_def([], Acc) ->
     lists:reverse(Acc);
+
+create_hashmap_def(
+  [
+    [{Signedness, {$x, BitSize, Postfix}},
+     {array_spec, {size, Cnt}},
+     {[]},
+     {array_tail_spec, [{name, NameStr} | Values]}
+    ] | Rest
+  ],
+  Acc
+) ->
+    ContinueOnWith = [
+      [{Signedness, {$x, BitSize, Postfix}},
+      {array_spec, {size, Cnt}},
+      {[]},
+      {array_tail_spec, Values}
+     ] | Rest
+    ],
+    Str = io_lib:format("<<\"~s\">> => V~s", [NameStr, NameStr]),
+    create_hashmap_def(ContinueOnWith, [Str | Acc]);
+
+create_hashmap_def(
+  [
+    [{Signedness, {$x, BitSize, Postfix}},
+     {array_spec, {size, Cnt}},
+     {[]},
+     {array_tail_spec, [_V1 | Values]}
+    ] | Rest
+  ],
+  Acc
+) ->
+    ContinueOnWith = [
+      [{Signedness, {$x, BitSize, Postfix}},
+      {array_spec, {size, Cnt}},
+      {[]},
+      {array_tail_spec, Values}
+     ] | Rest
+    ],
+    create_hashmap_def(ContinueOnWith, Acc);
 
 create_hashmap_def(
   [
@@ -275,6 +327,56 @@ create_hashmap_def(
 %%
 create_binary_matcher([], Acc) ->
     lists:reverse(Acc);
+
+create_binary_matcher(
+  [
+    [{_Signedness, {$x, _BitSize, _Postfix}},
+     {array_spec, {size, _Cnt}},
+     {[]},
+     {array_tail_spec, []}
+    ] | Rest
+  ],
+  Acc
+) ->
+    create_binary_matcher(Rest, Acc);
+
+create_binary_matcher(
+  [
+    [{Signedness, {$x, BitSize, Postfix}},
+     {array_spec, {size, Cnt}},
+     {[]},
+     {array_tail_spec, [V1 | Values]}
+    ] | Rest
+  ],
+  Acc
+) ->
+    %% ignore but ignore an array of values.
+    %%   x8[4] => [1,2,3,4]
+    %% is what this handles. The '4' in 'x8[4]' is silently ignored as the
+    %% array specification gives us the count value. It should really be
+    %% an error but YOLO.
+    ContinueOnWith =
+        [
+         [{Signedness, {$x, BitSize, Postfix}},
+          {array_spec, {size, Cnt}},
+          {[]},
+          {array_tail_spec, Values}
+         ] | Rest
+        ],
+
+    case V1 of
+        {name, Name} ->
+            create_binary_matcher(
+              ContinueOnWith,
+              [io_lib:format("V~s:~b/bits", [Name, BitSize]) | Acc]
+             );
+        _ ->
+            create_binary_matcher(
+              ContinueOnWith,
+              [io_lib:format("~b:~b", [V1, BitSize]) | Acc]
+             )
+    end;
+
 
 create_binary_matcher(
   [

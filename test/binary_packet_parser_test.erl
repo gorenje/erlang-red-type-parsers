@@ -428,6 +428,24 @@ foreach_packet_parser_end_to_end_test_() ->
             <<"value2">> => 212, <<"value3">> => 54652 },
          <<255,234,212,213,124,221,123,231,231,231>>,
          <<>> }
+      },
+      {
+        array_of_values_expected,
+        "x8 => [0xac, 0xed, 0x0, 0x5]",
+        <<172,237,0,5,124,221,123,231,231,231>>,
+       {ok,#{},<<172,237,0,5>>,<<124,221,123,231,231,231>>}
+      },
+      {
+        array_of_values_expected_ignore_array_size_spec,
+        "x8[21] => [0xac, 0xed, 0x0, 0x5]",
+        <<172,237,0,5,124,221,123,231,231,231>>,
+       {ok,#{},<<172,237,0,5>>,<<124,221,123,231,231,231>>}
+      },
+      {
+        array_of_values_expected_also_with_assignment,
+        "x8 => [0xac, 0xed, 0x0, $len]",
+        <<172,237,0,5,124,221,123,231,231,231>>,
+       {ok,#{<<"len">> => <<5>>},<<172,237,0,5>>,<<124,221,123,231,231,231>>}
       }
      ],
     TestList = [{
@@ -778,6 +796,79 @@ foreach_packet_parser_successful_test_() ->
                       <<\"v2_1\">> => Vv2_1, <<\"v2_2\">> => Vv2_2,
                       <<\"v3_3\">> => Vv3_3 }, MatchedBits, UnmatchedBits}
           end."
+       },
+       {
+        ignore_array_of_bytes,
+        "x8[4] => [0xac, 0xed, 0x0, 0x5],
+         b8 => len
+        ",
+        "fun (Binary) ->
+                <<172:8, 237:8, 0:8, 5:8, Vlen:8/integer-big-unsigned,
+                                UnmatchedBits/bits>> = Binary,
+                <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                              UnmatchedBits/bits>> = Binary,
+                {ok, #{ <<\"len\">> => Vlen }, MatchedBits, UnmatchedBits}
+         end."
+       },
+       {
+        ignore_array_of_bytes_even_without_count,
+        "x8 => [0xac, 0xed, 0x0, 0x5],
+         b8 => len
+        ",
+        "fun (Binary) ->
+                <<172:8, 237:8, 0:8, 5:8, Vlen:8/integer-big-unsigned,
+                     UnmatchedBits/bits>> = Binary,
+                <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                 UnmatchedBits/bits>> = Binary,
+                 {ok, #{ <<\"len\">> => Vlen }, MatchedBits, UnmatchedBits}
+         end."
+       },
+       {
+        ignore_array_of_bytes_as_gatekeeper,
+        "x8 => [0xac, 0xed, 0x0, 0x5]",
+        "fun (Binary) ->
+                <<172:8, 237:8, 0:8, 5:8, UnmatchedBits/bits>> = Binary,
+                <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                       UnmatchedBits/bits>> = Binary,
+             {ok, #{ }, MatchedBits, UnmatchedBits}
+          end."
+       },
+       {
+        ignore_array_of_bits,
+        "x1[4] => [1,1,0,1],
+         b8 => len
+        ",
+        "fun (Binary) ->
+                <<1:1, 1:1, 0:1, 1:1, Vlen:8/integer-big-unsigned,
+                             UnmatchedBits/bits>> = Binary,
+                <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                                UnmatchedBits/bits>> = Binary,
+                {ok, #{ <<\"len\">> => Vlen }, MatchedBits, UnmatchedBits}
+         end."
+       },
+       {
+        ignore_array_of_bits_with_name_reference,
+        "x1[4] => [1,1,0,$len],
+         b8 => len
+        ",
+        "fun (Binary) ->
+              <<1:1, 1:1, 0:1, Vlen:1/bits, Vlen:8/integer-big-unsigned,
+                            UnmatchedBits/bits>> = Binary,
+              <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                     UnmatchedBits/bits>> = Binary,
+              {ok, #{ <<\"len\">> => Vlen, <<\"len\">> => Vlen },
+                         MatchedBits, UnmatchedBits}
+         end."
+       },
+       {
+        array_of_bits_with_assignment,
+        "x1[4] => [1,1,0,$len]",
+        "fun (Binary) ->
+              <<1:1, 1:1, 0:1, Vlen:1/bits, UnmatchedBits/bits>> = Binary,
+              <<MatchedBits:(bit_size(Binary) - bit_size(UnmatchedBits))/bits,
+                     UnmatchedBits/bits>> = Binary,
+              {ok, #{ <<\"len\">> => Vlen }, MatchedBits, UnmatchedBits}
+         end."
        }
     ],
 
@@ -885,6 +976,12 @@ foreach_packet_leex_successful_test_() ->
       {
        minus_not_allowed_in_names_but_leexable,
        "x8,
+        b8 => len-minus
+       "
+      },
+      {
+       ignore_array_of_bytes,
+       "x8[4] => [0xac, 0xbe, 0x0, 0x5],
         b8 => len-minus
        "
       }
