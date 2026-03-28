@@ -5,11 +5,17 @@
 -module(erlang_red_packet_type_parser).
 -file("/code/src/erlang_red_packet_type_parser.erl", 6).
 -export([parse/1, parse_and_scan/1, format_error/1]).
--file("/code/src/erlang_red_packet_type_parser.yrl", 123).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 126).
 
 %%
 %% Take the list of arguments and convert to a function containing binary
 %% matchers and map definition.
+convert([]) ->
+    list_to_binary(io_lib:format(
+       "fun (Binary) ->
+             {ok, #{}, <<>>, Binary}
+        end.",[]));
+
 convert(Args) ->
     %% ensure that all definitions have a name, assigning internale field names
     {Args3, _IgnoreCnt} = add_field_names(Args),
@@ -675,7 +681,7 @@ yecctoken2string1(Other) ->
 
 
 
--file("/code/src/erlang_red_packet_type_parser.erl", 678).
+-file("/code/src/erlang_red_packet_type_parser.erl", 684).
 
 -dialyzer({nowarn_function, yeccpars2/7}).
 -compile({nowarn_unused_function,  yeccpars2/7}).
@@ -736,7 +742,7 @@ yeccpars2(23=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 yeccpars2(27=S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_27(S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccpars2(28=S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_0(S, Cat, Ss, Stack, T, Ts, Tzr);
+ yeccpars2_28(S, Cat, Ss, Stack, T, Ts, Tzr);
 %% yeccpars2(29=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 %%  yeccpars2_29(S, Cat, Ss, Stack, T, Ts, Tzr);
 %% yeccpars2(30=S, Cat, Ss, Stack, T, Ts, Tzr) ->
@@ -758,7 +764,7 @@ yeccpars2(37=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 %% yeccpars2(38=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 %%  yeccpars2_38(S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccpars2(39=S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_0(S, Cat, Ss, Stack, T, Ts, Tzr);
+ yeccpars2_28(S, Cat, Ss, Stack, T, Ts, Tzr);
 %% yeccpars2(40=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 %%  yeccpars2_40(S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccpars2(41=S, Cat, Ss, Stack, T, Ts, Tzr) ->
@@ -814,29 +820,27 @@ yeccpars2(64=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 yeccpars2(Other, _, _, _, _, _, _) ->
  erlang:error({yecc_bug,"1.4",{missing_state_in_action_table, Other}}).
 
+-dialyzer({nowarn_function, yeccpars2_0/7}).
+-compile({nowarn_unused_function,  yeccpars2_0/7}).
+yeccpars2_0(S, '[', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 7, Ss, Stack, T, Ts, Tzr);
+yeccpars2_0(S, 'bin', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 8, Ss, Stack, T, Ts, Tzr);
+yeccpars2_0(S, 'hex', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 9, Ss, Stack, T, Ts, Tzr);
+yeccpars2_0(S, 'name', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 10, Ss, Stack, T, Ts, Tzr);
+yeccpars2_0(S, 'number', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 11, Ss, Stack, T, Ts, Tzr);
+yeccpars2_0(S, 'octal', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 12, Ss, Stack, T, Ts, Tzr);
 yeccpars2_0(S, 'signed', Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 13, Ss, Stack, T, Ts, Tzr);
 yeccpars2_0(S, 'unsigned', Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 14, Ss, Stack, T, Ts, Tzr);
-yeccpars2_0(S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_cont_0(S, Cat, Ss, Stack, T, Ts, Tzr).
-
--dialyzer({nowarn_function, yeccpars2_0/7}).
--compile({nowarn_unused_function,  yeccpars2_0/7}).
-yeccpars2_cont_0(S, '[', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 7, Ss, Stack, T, Ts, Tzr);
-yeccpars2_cont_0(S, 'bin', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 8, Ss, Stack, T, Ts, Tzr);
-yeccpars2_cont_0(S, 'hex', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 9, Ss, Stack, T, Ts, Tzr);
-yeccpars2_cont_0(S, 'name', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 10, Ss, Stack, T, Ts, Tzr);
-yeccpars2_cont_0(S, 'number', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 11, Ss, Stack, T, Ts, Tzr);
-yeccpars2_cont_0(S, 'octal', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 12, Ss, Stack, T, Ts, Tzr);
-yeccpars2_cont_0(_, _, _, _, T, _, _) ->
- yeccerror(T).
+yeccpars2_0(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
+ NewStack = yeccpars2_0_(Stack),
+ yeccpars2_4(4, Cat, [0 | Ss], NewStack, T, Ts, Tzr).
 
 -dialyzer({nowarn_function, yeccpars2_1/7}).
 -compile({nowarn_unused_function,  yeccpars2_1/7}).
@@ -1053,7 +1057,29 @@ yeccpars2_27(S, 'octal', Ss, Stack, T, Ts, Tzr) ->
 yeccpars2_27(_, _, _, _, T, _, _) ->
  yeccerror(T).
 
-%% yeccpars2_28: see yeccpars2_0
+yeccpars2_28(S, 'signed', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 13, Ss, Stack, T, Ts, Tzr);
+yeccpars2_28(S, 'unsigned', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 14, Ss, Stack, T, Ts, Tzr);
+yeccpars2_28(S, Cat, Ss, Stack, T, Ts, Tzr) ->
+ yeccpars2_cont_28(S, Cat, Ss, Stack, T, Ts, Tzr).
+
+-dialyzer({nowarn_function, yeccpars2_28/7}).
+-compile({nowarn_unused_function,  yeccpars2_28/7}).
+yeccpars2_cont_28(S, '[', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 7, Ss, Stack, T, Ts, Tzr);
+yeccpars2_cont_28(S, 'bin', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 8, Ss, Stack, T, Ts, Tzr);
+yeccpars2_cont_28(S, 'hex', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 9, Ss, Stack, T, Ts, Tzr);
+yeccpars2_cont_28(S, 'name', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 10, Ss, Stack, T, Ts, Tzr);
+yeccpars2_cont_28(S, 'number', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 11, Ss, Stack, T, Ts, Tzr);
+yeccpars2_cont_28(S, 'octal', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 12, Ss, Stack, T, Ts, Tzr);
+yeccpars2_cont_28(_, _, _, _, T, _, _) ->
+ yeccerror(T).
 
 -dialyzer({nowarn_function, yeccpars2_29/7}).
 -compile({nowarn_unused_function,  yeccpars2_29/7}).
@@ -1097,7 +1123,7 @@ yeccpars2_33(_, _, _, _, T, _, _) ->
 yeccpars2_34(S, 'unsigned', Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 36, Ss, Stack, T, Ts, Tzr);
 yeccpars2_34(S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_cont_0(S, Cat, Ss, Stack, T, Ts, Tzr).
+ yeccpars2_cont_28(S, Cat, Ss, Stack, T, Ts, Tzr).
 
 -dialyzer({nowarn_function, yeccpars2_35/7}).
 -compile({nowarn_unused_function,  yeccpars2_35/7}).
@@ -1121,7 +1147,7 @@ yeccpars2_38(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  NewStack = yeccpars2_38_(Stack),
  yeccgoto_statement_nost(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
 
-%% yeccpars2_39: see yeccpars2_0
+%% yeccpars2_39: see yeccpars2_28
 
 -dialyzer({nowarn_function, yeccpars2_40/7}).
 -compile({nowarn_unused_function,  yeccpars2_40/7}).
@@ -1416,10 +1442,19 @@ yeccgoto_tail(60=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
 yeccgoto_tail(62, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_1(1, Cat, Ss, Stack, T, Ts, Tzr).
 
+-compile({inline,yeccpars2_0_/1}).
+-dialyzer({nowarn_function, yeccpars2_0_/1}).
+-compile({nowarn_unused_function,  yeccpars2_0_/1}).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 56).
+yeccpars2_0_(__Stack0) ->
+ [begin
+                   convert([])
+  end | __Stack0].
+
 -compile({inline,yeccpars2_2_/1}).
 -dialyzer({nowarn_function, yeccpars2_2_/1}).
 -compile({nowarn_unused_function,  yeccpars2_2_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 53).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 55).
 yeccpars2_2_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1429,7 +1464,7 @@ yeccpars2_2_(__Stack0) ->
 -compile({inline,yeccpars2_3_/1}).
 -dialyzer({nowarn_function, yeccpars2_3_/1}).
 -compile({nowarn_unused_function,  yeccpars2_3_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 89).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 92).
 yeccpars2_3_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1439,7 +1474,7 @@ yeccpars2_3_(__Stack0) ->
 -compile({inline,yeccpars2_5_/1}).
 -dialyzer({nowarn_function, yeccpars2_5_/1}).
 -compile({nowarn_unused_function,  yeccpars2_5_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 85).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 88).
 yeccpars2_5_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1449,7 +1484,7 @@ yeccpars2_5_(__Stack0) ->
 -compile({inline,yeccpars2_6_/1}).
 -dialyzer({nowarn_function, yeccpars2_6_/1}).
 -compile({nowarn_unused_function,  yeccpars2_6_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 80).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 83).
 yeccpars2_6_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1459,7 +1494,7 @@ yeccpars2_6_(__Stack0) ->
 -compile({inline,yeccpars2_8_/1}).
 -dialyzer({nowarn_function, yeccpars2_8_/1}).
 -compile({nowarn_unused_function,  yeccpars2_8_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 62).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 65).
 yeccpars2_8_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1469,7 +1504,7 @@ yeccpars2_8_(__Stack0) ->
 -compile({inline,yeccpars2_9_/1}).
 -dialyzer({nowarn_function, yeccpars2_9_/1}).
 -compile({nowarn_unused_function,  yeccpars2_9_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 61).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 64).
 yeccpars2_9_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1479,7 +1514,7 @@ yeccpars2_9_(__Stack0) ->
 -compile({inline,yeccpars2_10_/1}).
 -dialyzer({nowarn_function, yeccpars2_10_/1}).
 -compile({nowarn_unused_function,  yeccpars2_10_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 58).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 61).
 yeccpars2_10_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1489,7 +1524,7 @@ yeccpars2_10_(__Stack0) ->
 -compile({inline,yeccpars2_11_/1}).
 -dialyzer({nowarn_function, yeccpars2_11_/1}).
 -compile({nowarn_unused_function,  yeccpars2_11_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 60).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 63).
 yeccpars2_11_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1499,7 +1534,7 @@ yeccpars2_11_(__Stack0) ->
 -compile({inline,yeccpars2_12_/1}).
 -dialyzer({nowarn_function, yeccpars2_12_/1}).
 -compile({nowarn_unused_function,  yeccpars2_12_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 63).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 66).
 yeccpars2_12_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1509,7 +1544,7 @@ yeccpars2_12_(__Stack0) ->
 -compile({inline,yeccpars2_13_/1}).
 -dialyzer({nowarn_function, yeccpars2_13_/1}).
 -compile({nowarn_unused_function,  yeccpars2_13_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 55).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 58).
 yeccpars2_13_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1519,7 +1554,7 @@ yeccpars2_13_(__Stack0) ->
 -compile({inline,'yeccpars2_14_$end'/1}).
 -dialyzer({nowarn_function, 'yeccpars2_14_$end'/1}).
 -compile({nowarn_unused_function,  'yeccpars2_14_$end'/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 56).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 59).
 'yeccpars2_14_$end'(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1529,7 +1564,7 @@ yeccpars2_13_(__Stack0) ->
 -compile({inline,'yeccpars2_14_,'/1}).
 -dialyzer({nowarn_function, 'yeccpars2_14_,'/1}).
 -compile({nowarn_unused_function,  'yeccpars2_14_,'/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 56).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 59).
 'yeccpars2_14_,'(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1539,7 +1574,7 @@ yeccpars2_13_(__Stack0) ->
 -compile({inline,'yeccpars2_14_=>'/1}).
 -dialyzer({nowarn_function, 'yeccpars2_14_=>'/1}).
 -compile({nowarn_unused_function,  'yeccpars2_14_=>'/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 56).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 59).
 'yeccpars2_14_=>'(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1549,7 +1584,7 @@ yeccpars2_13_(__Stack0) ->
 -compile({inline,'yeccpars2_14_['/1}).
 -dialyzer({nowarn_function, 'yeccpars2_14_['/1}).
 -compile({nowarn_unused_function,  'yeccpars2_14_['/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 56).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 59).
 'yeccpars2_14_['(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1559,7 +1594,7 @@ yeccpars2_13_(__Stack0) ->
 -compile({inline,'yeccpars2_14_{'/1}).
 -dialyzer({nowarn_function, 'yeccpars2_14_{'/1}).
 -compile({nowarn_unused_function,  'yeccpars2_14_{'/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 56).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 59).
 'yeccpars2_14_{'(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1569,7 +1604,7 @@ yeccpars2_13_(__Stack0) ->
 -compile({inline,'yeccpars2_14_}'/1}).
 -dialyzer({nowarn_function, 'yeccpars2_14_}'/1}).
 -compile({nowarn_unused_function,  'yeccpars2_14_}'/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 56).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 59).
 'yeccpars2_14_}'(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1579,7 +1614,7 @@ yeccpars2_13_(__Stack0) ->
 -compile({inline,yeccpars2_14_/1}).
 -dialyzer({nowarn_function, yeccpars2_14_/1}).
 -compile({nowarn_unused_function,  yeccpars2_14_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 59).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 62).
 yeccpars2_14_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1589,7 +1624,7 @@ yeccpars2_14_(__Stack0) ->
 -compile({inline,yeccpars2_17_/1}).
 -dialyzer({nowarn_function, yeccpars2_17_/1}).
 -compile({nowarn_unused_function,  yeccpars2_17_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 110).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 113).
 yeccpars2_17_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1599,7 +1634,7 @@ yeccpars2_17_(__Stack0) ->
 -compile({inline,yeccpars2_18_/1}).
 -dialyzer({nowarn_function, yeccpars2_18_/1}).
 -compile({nowarn_unused_function,  yeccpars2_18_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 111).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 114).
 yeccpars2_18_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1609,7 +1644,7 @@ yeccpars2_18_(__Stack0) ->
 -compile({inline,yeccpars2_19_/1}).
 -dialyzer({nowarn_function, yeccpars2_19_/1}).
 -compile({nowarn_unused_function,  yeccpars2_19_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 113).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 116).
 yeccpars2_19_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1619,7 +1654,7 @@ yeccpars2_19_(__Stack0) ->
 -compile({inline,yeccpars2_20_/1}).
 -dialyzer({nowarn_function, yeccpars2_20_/1}).
 -compile({nowarn_unused_function,  yeccpars2_20_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 112).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 115).
 yeccpars2_20_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1629,7 +1664,7 @@ yeccpars2_20_(__Stack0) ->
 -compile({inline,yeccpars2_21_/1}).
 -dialyzer({nowarn_function, yeccpars2_21_/1}).
 -compile({nowarn_unused_function,  yeccpars2_21_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 114).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 117).
 yeccpars2_21_(__Stack0) ->
  [___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1639,7 +1674,7 @@ yeccpars2_21_(__Stack0) ->
 -compile({inline,yeccpars2_23_/1}).
 -dialyzer({nowarn_function, yeccpars2_23_/1}).
 -compile({nowarn_unused_function,  yeccpars2_23_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 64).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 67).
 yeccpars2_23_(__Stack0) ->
  [___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1649,7 +1684,7 @@ yeccpars2_23_(__Stack0) ->
 -compile({inline,yeccpars2_24_/1}).
 -dialyzer({nowarn_function, yeccpars2_24_/1}).
 -compile({nowarn_unused_function,  yeccpars2_24_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 116).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 119).
 yeccpars2_24_(__Stack0) ->
  [___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1659,7 +1694,7 @@ yeccpars2_24_(__Stack0) ->
 -compile({inline,yeccpars2_25_/1}).
 -dialyzer({nowarn_function, yeccpars2_25_/1}).
 -compile({nowarn_unused_function,  yeccpars2_25_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 82).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 85).
 yeccpars2_25_(__Stack0) ->
  [___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1669,7 +1704,7 @@ yeccpars2_25_(__Stack0) ->
 -compile({inline,yeccpars2_26_/1}).
 -dialyzer({nowarn_function, yeccpars2_26_/1}).
 -compile({nowarn_unused_function,  yeccpars2_26_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 81).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 84).
 yeccpars2_26_(__Stack0) ->
  [___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1679,7 +1714,7 @@ yeccpars2_26_(__Stack0) ->
 -compile({inline,yeccpars2_31_/1}).
 -dialyzer({nowarn_function, yeccpars2_31_/1}).
 -compile({nowarn_unused_function,  yeccpars2_31_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 74).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 77).
 yeccpars2_31_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1689,7 +1724,7 @@ yeccpars2_31_(__Stack0) ->
 -compile({inline,yeccpars2_32_/1}).
 -dialyzer({nowarn_function, yeccpars2_32_/1}).
 -compile({nowarn_unused_function,  yeccpars2_32_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 68).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 71).
 yeccpars2_32_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1699,7 +1734,7 @@ yeccpars2_32_(__Stack0) ->
 -compile({inline,yeccpars2_35_/1}).
 -dialyzer({nowarn_function, yeccpars2_35_/1}).
 -compile({nowarn_unused_function,  yeccpars2_35_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 69).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 72).
 yeccpars2_35_(__Stack0) ->
  [___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1709,7 +1744,7 @@ yeccpars2_35_(__Stack0) ->
 -compile({inline,yeccpars2_36_/1}).
 -dialyzer({nowarn_function, yeccpars2_36_/1}).
 -compile({nowarn_unused_function,  yeccpars2_36_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 59).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 62).
 yeccpars2_36_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1719,7 +1754,7 @@ yeccpars2_36_(__Stack0) ->
 -compile({inline,yeccpars2_38_/1}).
 -dialyzer({nowarn_function, yeccpars2_38_/1}).
 -compile({nowarn_unused_function,  yeccpars2_38_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 70).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 73).
 yeccpars2_38_(__Stack0) ->
  [___4,___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1729,7 +1764,7 @@ yeccpars2_38_(__Stack0) ->
 -compile({inline,yeccpars2_40_/1}).
 -dialyzer({nowarn_function, yeccpars2_40_/1}).
 -compile({nowarn_unused_function,  yeccpars2_40_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 75).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 78).
 yeccpars2_40_(__Stack0) ->
  [___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1739,7 +1774,7 @@ yeccpars2_40_(__Stack0) ->
 -compile({inline,yeccpars2_41_/1}).
 -dialyzer({nowarn_function, yeccpars2_41_/1}).
 -compile({nowarn_unused_function,  yeccpars2_41_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 77).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 80).
 yeccpars2_41_(__Stack0) ->
  [___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1749,7 +1784,7 @@ yeccpars2_41_(__Stack0) ->
 -compile({inline,yeccpars2_43_/1}).
 -dialyzer({nowarn_function, yeccpars2_43_/1}).
 -compile({nowarn_unused_function,  yeccpars2_43_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 71).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 74).
 yeccpars2_43_(__Stack0) ->
  [___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1759,7 +1794,7 @@ yeccpars2_43_(__Stack0) ->
 -compile({inline,yeccpars2_44_/1}).
 -dialyzer({nowarn_function, yeccpars2_44_/1}).
 -compile({nowarn_unused_function,  yeccpars2_44_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 56).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 59).
 yeccpars2_44_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1769,7 +1804,7 @@ yeccpars2_44_(__Stack0) ->
 -compile({inline,yeccpars2_45_/1}).
 -dialyzer({nowarn_function, yeccpars2_45_/1}).
 -compile({nowarn_unused_function,  yeccpars2_45_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 72).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 75).
 yeccpars2_45_(__Stack0) ->
  [___4,___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1779,7 +1814,7 @@ yeccpars2_45_(__Stack0) ->
 -compile({inline,yeccpars2_48_/1}).
 -dialyzer({nowarn_function, yeccpars2_48_/1}).
 -compile({nowarn_unused_function,  yeccpars2_48_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 101).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 104).
 yeccpars2_48_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1789,7 +1824,7 @@ yeccpars2_48_(__Stack0) ->
 -compile({inline,yeccpars2_49_/1}).
 -dialyzer({nowarn_function, yeccpars2_49_/1}).
 -compile({nowarn_unused_function,  yeccpars2_49_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 102).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 105).
 yeccpars2_49_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1799,7 +1834,7 @@ yeccpars2_49_(__Stack0) ->
 -compile({inline,yeccpars2_50_/1}).
 -dialyzer({nowarn_function, yeccpars2_50_/1}).
 -compile({nowarn_unused_function,  yeccpars2_50_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 104).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 107).
 yeccpars2_50_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1809,7 +1844,7 @@ yeccpars2_50_(__Stack0) ->
 -compile({inline,yeccpars2_51_/1}).
 -dialyzer({nowarn_function, yeccpars2_51_/1}).
 -compile({nowarn_unused_function,  yeccpars2_51_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 103).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 106).
 yeccpars2_51_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1819,7 +1854,7 @@ yeccpars2_51_(__Stack0) ->
 -compile({inline,yeccpars2_52_/1}).
 -dialyzer({nowarn_function, yeccpars2_52_/1}).
 -compile({nowarn_unused_function,  yeccpars2_52_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 105).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 108).
 yeccpars2_52_(__Stack0) ->
  [___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1829,7 +1864,7 @@ yeccpars2_52_(__Stack0) ->
 -compile({inline,yeccpars2_54_/1}).
 -dialyzer({nowarn_function, yeccpars2_54_/1}).
 -compile({nowarn_unused_function,  yeccpars2_54_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 98).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 101).
 yeccpars2_54_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1839,7 +1874,7 @@ yeccpars2_54_(__Stack0) ->
 -compile({inline,yeccpars2_55_/1}).
 -dialyzer({nowarn_function, yeccpars2_55_/1}).
 -compile({nowarn_unused_function,  yeccpars2_55_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 96).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 99).
 yeccpars2_55_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1849,7 +1884,7 @@ yeccpars2_55_(__Stack0) ->
 -compile({inline,yeccpars2_56_/1}).
 -dialyzer({nowarn_function, yeccpars2_56_/1}).
 -compile({nowarn_unused_function,  yeccpars2_56_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 95).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 98).
 yeccpars2_56_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1859,7 +1894,7 @@ yeccpars2_56_(__Stack0) ->
 -compile({inline,yeccpars2_57_/1}).
 -dialyzer({nowarn_function, yeccpars2_57_/1}).
 -compile({nowarn_unused_function,  yeccpars2_57_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 97).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 100).
 yeccpars2_57_(__Stack0) ->
  [___1 | __Stack] = __Stack0,
  [begin
@@ -1869,7 +1904,7 @@ yeccpars2_57_(__Stack0) ->
 -compile({inline,yeccpars2_58_/1}).
 -dialyzer({nowarn_function, yeccpars2_58_/1}).
 -compile({nowarn_unused_function,  yeccpars2_58_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 106).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 109).
 yeccpars2_58_(__Stack0) ->
  [___4,___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1880,7 +1915,7 @@ yeccpars2_58_(__Stack0) ->
 -compile({inline,yeccpars2_59_/1}).
 -dialyzer({nowarn_function, yeccpars2_59_/1}).
 -compile({nowarn_unused_function,  yeccpars2_59_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 93).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 96).
 yeccpars2_59_(__Stack0) ->
  [___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1890,7 +1925,7 @@ yeccpars2_59_(__Stack0) ->
 -compile({inline,yeccpars2_61_/1}).
 -dialyzer({nowarn_function, yeccpars2_61_/1}).
 -compile({nowarn_unused_function,  yeccpars2_61_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 86).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 89).
 yeccpars2_61_(__Stack0) ->
  [___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1900,7 +1935,7 @@ yeccpars2_61_(__Stack0) ->
 -compile({inline,yeccpars2_62_/1}).
 -dialyzer({nowarn_function, yeccpars2_62_/1}).
 -compile({nowarn_unused_function,  yeccpars2_62_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 90).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 93).
 yeccpars2_62_(__Stack0) ->
  [___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1910,7 +1945,7 @@ yeccpars2_62_(__Stack0) ->
 -compile({inline,yeccpars2_63_/1}).
 -dialyzer({nowarn_function, yeccpars2_63_/1}).
 -compile({nowarn_unused_function,  yeccpars2_63_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 91).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 94).
 yeccpars2_63_(__Stack0) ->
  [___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1920,7 +1955,7 @@ yeccpars2_63_(__Stack0) ->
 -compile({inline,yeccpars2_65_/1}).
 -dialyzer({nowarn_function, yeccpars2_65_/1}).
 -compile({nowarn_unused_function,  yeccpars2_65_/1}).
--file("/code/src/erlang_red_packet_type_parser.yrl", 87).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 90).
 yeccpars2_65_(__Stack0) ->
  [___3,___2,___1 | __Stack] = __Stack0,
  [begin
@@ -1928,4 +1963,4 @@ yeccpars2_65_(__Stack0) ->
   end | __Stack].
 
 
--file("/code/src/erlang_red_packet_type_parser.yrl", 604).
+-file("/code/src/erlang_red_packet_type_parser.yrl", 613).

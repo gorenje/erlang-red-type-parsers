@@ -19,9 +19,17 @@
 %
 % Simple and expressive.
 %
+% This has an extension with '%' comment lines, so this:
+%
+%   b8 => len,
+%   % this is a comment
+%   l24a => id  % comment at end also work
+%   % this is also a comment.
+%
 Definitions.
 
-WHITESPACE = [\s\t\n\r]
+NEWLINE    = [\n\r]
+WHITESPACE = [\s\t]
 
 ARROW      = [\=][\>]
 COLON      = [\:]
@@ -35,6 +43,7 @@ MULTIPLE   = [*]
 DIVIDE     = [/]
 ENDIANNESS = [blx]
 POSTFIX    = [f]
+PERCENT    = [\%]
 
 HEXCHARS   = 0[xX][a-f0-9A-F][a-f0-9A-F_]*
 OCTALCHARS = 0[oO][0-7][0-7_]*
@@ -46,8 +55,16 @@ BRACKET_CLOSE = [\]]
 CURLY_OPEN  = [\{]
 CURLY_CLOSE = [\}]
 
+NOT_NEWLINE = [^\n\r]+
+
 Rules.
 
+%% Comment lines
+{PERCENT}{NOT_NEWLINE}{NEWLINE} : skip_token.
+%% if the content is a single comment line without a newline
+{PERCENT}{NOT_NEWLINE} : skip_token.
+
+{NEWLINE}+ : skip_token.
 {WHITESPACE}+ : skip_token.
 
 {NEG}{ENDIANNESS}{NUM}{POSTFIX} : {token, {signed,   signed_postfixed(TokenChars)}}.

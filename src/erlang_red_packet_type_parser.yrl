@@ -49,12 +49,15 @@ Rootsymbol
 %% When things are missing ... Convention is to use noXX for when
 %% stuff isn't defined:
 %%
-%%  - nopf - no post fix defined
-%%  - nonm - no name defined, i.e., variable label
+%%  - nopf - no post fix definition
+%%  - nonm - no name definition, i.e., variable label
 %%
 %% These are used in the spot where the definitions should be so that
 %% data structures are all the same length even if they are missing details.
+%%
+
 root -> statements : convert('$1').
+root -> '$empty' : convert([]).
 
 binary_spec -> signed   : '$1'.
 binary_spec -> unsigned : '$1'.
@@ -125,6 +128,12 @@ Erlang code.
 %%
 %% Take the list of arguments and convert to a function containing binary
 %% matchers and map definition.
+convert([]) ->
+    list_to_binary(io_lib:format(
+       "fun (Binary) ->
+             {ok, #{}, <<>>, Binary}
+        end.",[]));
+
 convert(Args) ->
     %% ensure that all definitions have a name, assigning internale field names
     {Args3, _IgnoreCnt} = add_field_names(Args),

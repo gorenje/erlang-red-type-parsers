@@ -16,6 +16,7 @@ collect_png_chunks(Data, Acc, ChunkFunc) ->
 
 check_parsing_of_png_image_test() ->
     HeaderDef = "
+       % the following defines the png header sequence
        x8 => 0x89,
        x8 => 0x50,
        x8 => 0x4E,
@@ -27,7 +28,8 @@ check_parsing_of_png_image_test() ->
     ",
 
     ChunkDef =
-       "b32         => length,
+       "% this defines the png chunk definiton
+        b32         => length,
         b8[4]       => type,
         b8[$length] => data,
         b32         => crc",
@@ -388,6 +390,12 @@ foreach_packet_parser_end_to_end_test_() ->
        { ok, #{ <<"values">> => [65,30,116,76] }, <<130, 123, 164, 193>>, <<>> }
       },
       {
+       does_empty_work_,
+       "",
+       <<130, 123, 164, 193>>,
+       { ok, #{}, <<>>, <<130, 123, 164, 193>>}
+      },
+      {
        structures_can_have_arrays,
        "b32{ b7[4] => values, x4 }",
        <<130, 123, 164, 193>>,
@@ -400,11 +408,20 @@ foreach_packet_parser_end_to_end_test_() ->
        { ok, #{ <<"values">> => [65,30,116,76] }, <<130, 123, 164, 193>>, <<>> }
       },
       {
+       everything_is_commented_out,
+       "% b32{ values: b7[4], x4 }",
+       <<130, 123, 164, 193>>,
+       { ok, #{}, <<>>, <<130, 123, 164, 193>>}
+      },
+      {
         little_endianness,
         "x8,
          b8 => value,
+         % this is a comment
          l8 => value2,
-         l16 => value3,
+         l16 => value3, % this is another comment
+
+
          l32{l8 => f1, l16 => f2, l4 => f3, l4 => f4},
          l8 => last",
         <<255,234,212,213,124,221,123,231,231,231>>,
@@ -418,6 +435,11 @@ foreach_packet_parser_end_to_end_test_() ->
         big_endianness,
         "x8,
          l8 => value,
+
+
+         % a random comment with newlines
+
+
          b8 => value2,
          b16 => value3,
          b32{-l8 => f1, -l16 => f2, l4 => f3, l4 => f4},
@@ -437,7 +459,8 @@ foreach_packet_parser_end_to_end_test_() ->
       },
       {
         array_of_values_expected_ignore_array_size_spec,
-        "x8[21] => [0xac, 0xed, 0x0, 0x5]",
+        " % only 'x' is ignore
+          x8[21] => [0xac, 0xed, 0x0, 0x5]",
         <<172,237,0,5,124,221,123,231,231,231>>,
        {ok,#{},<<172,237,0,5>>,<<124,221,123,231,231,231>>}
       },
@@ -525,8 +548,9 @@ foreach_packet_parser_successful_test_() ->
         x8 => 0x0A,
         b32         => length,
         b8[4]       => type,
+        % comment between definitions
         b8[$length] => data,
-        b32         => crc
+        b32         => crc % comment at end
        ",
        "fun (Binary) ->
              <<137:8, 80:8, 78:8, 71:8, 13:8, 10:8, 26:8, 10:8,
@@ -869,6 +893,28 @@ foreach_packet_parser_successful_test_() ->
                      UnmatchedBits/bits>> = Binary,
               {ok, #{ <<\"len\">> => Vlen }, MatchedBits, UnmatchedBits}
          end."
+       },
+       {
+        does_empty_compile_to_anything,
+        "",
+        "fun (Binary) ->
+              {ok, #{}, <<>>, Binary}
+         end."
+       },
+       {
+        single_comment_line_becomes_nothing,
+        "% this is a comment",
+        "fun (Binary) ->
+              {ok, #{}, <<>>, Binary}
+         end."
+       },
+       {
+        two_comment_lines_becomes_nothing,
+        "% this is a comment
+         % even a second line doesn't change that",
+        "fun (Binary) ->
+              {ok, #{}, <<>>, Binary}
+         end."
        }
     ],
 
@@ -984,6 +1030,14 @@ foreach_packet_leex_successful_test_() ->
        "x8[4] => [0xac, 0xbe, 0x0, 0x5],
         b8 => len-minus
        "
+      },
+      {
+       nothingness,
+       ""
+      },
+      {
+       single_comment,
+       "% single comment"
       }
     ],
 
